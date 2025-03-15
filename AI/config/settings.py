@@ -47,7 +47,7 @@ class Config:
         
         # LLM Configuration
         self._model_name = "gemini-1.5-pro"
-        self._temperature = 0.0
+        self._temperature = 0.5
         self._max_tokens = None
         self._timeout = None
         self._max_retries = 2
@@ -66,7 +66,7 @@ class Config:
         Your goal is to provide detailed responses that are:
         - Useful for persons who are suffering from IBS
 
-        jAlways explain concepts in simple terms and use examples where appropriate.
+        Always explain concepts in simple terms and use examples where appropriate.
         """
         
         # API Configuration

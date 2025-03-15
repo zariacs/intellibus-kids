@@ -1,5 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from settings import config
+from AI.config.settings import config
 from typing import Any, List, Optional
 from AI.config.logging_info import setup_logger
 
@@ -23,7 +23,7 @@ class GeminiChat:
         custom_callbacks: List[Any] = None
     ):
         """
-        Initialize the GeminiChat wrapper.
+        Initialize the GeminiChat wrapper with/without config default values.
         
         Args:
             model: Model name to use (defaults to value in config)
@@ -46,10 +46,8 @@ class GeminiChat:
         self.max_retries = max_retries if max_retries is not None else config.max_retries
         self.api_key = google_api_key or config.google_api_key
         
-        # Set up callbacks
-        self.callbacks = custom_callbacks or []
-        if config.langfuse_handler:
-            self.callbacks.append(config.langfuse_handler)
+        # Set up callbacks - using the same pattern as other parameters
+        self.callbacks = custom_callbacks or ([config.langfuse_handler] if config.langfuse_handler else [])
         
         # Validate essential parameters
         if not self.api_key:
