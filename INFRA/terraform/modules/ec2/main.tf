@@ -5,7 +5,7 @@ resource "aws_instance" "app_server" {
   security_groups = [var.sg_id]
   key_name      = var.key_name
 
-  user_data = file("${path.root}/INFRA/user_data.sh")
+  user_data = file("${path.root}/INFRA/terraform/user_data.sh")
 
 
   tags = {
