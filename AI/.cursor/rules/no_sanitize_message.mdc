@@ -1,0 +1,61 @@
+---
+description: Prevent including sanitize_message function in scripts
+globs: 
+alwaysApply: false
+---
+---
+description: Prevent including sanitize_message function in scripts
+globs: "*.py"
+alwaysApply: true
+---
+
+# No Sanitize Message Rule
+
+Rule to prevent including sanitize_message function in scripts unless explicitly requested.
+
+<rule>
+name: no_sanitize_message
+description: Prevent including sanitize_message function in Python files
+filters:
+  # Match Python files
+  - type: file_extension
+    pattern: "\\.py$"
+  # Match file creation or modification events
+  - type: event
+    pattern: "file_(create|modify)"
+
+actions:
+  - type: warn
+    conditions:
+      - pattern: "def _?sanitize_messages?\\("
+        message: "Avoid including sanitize_message function in scripts. This functionality should be handled separately."
+
+  - type: suggest
+    message: |
+      The sanitize_message function should not be included in scripts by default.
+      If you need message sanitization functionality:
+      
+      1. Create a dedicated utility module for this purpose
+      2. Make an explicit request to include it in your script
+
+examples:
+  - input: |
+      # Bad: Including sanitize_message function
+      def sanitize_message(messages):
+          # Function implementation
+          pass
+          
+      def _sanitize_messages(messages):
+          # Function implementation
+          pass
+      
+      # Good: No sanitize_message function
+      def process_messages(messages):
+          # Function implementation
+          pass
+    output: "Code without sanitize_message function"
+
+metadata:
+  priority: medium
+  version: 1.0
+</rule> 

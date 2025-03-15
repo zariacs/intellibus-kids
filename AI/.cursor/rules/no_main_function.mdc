@@ -1,0 +1,66 @@
+---
+description: this is how mani functions should be treated
+globs: 
+alwaysApply: false
+---
+---
+description: Prevent including main functions in scripts unless explicitly requested
+globs: "*.py"
+alwaysApply: true
+---
+
+# No Main Function Rule
+
+Rule to prevent including main functions in scripts unless explicitly requested.
+
+<rule>
+name: no_main_function
+description: Prevent including main functions in Python files unless explicitly requested
+filters:
+  # Match Python files
+  - type: file_extension
+    pattern: "\\.py$"
+  # Match file creation or modification events
+  - type: event
+    pattern: "file_(create|modify)"
+
+actions:
+  - type: warn
+    conditions:
+      - pattern: "if\\s+__name__\\s*==\\s*['\"]__main__['\"]\\s*:"
+        message: "Avoid including main function blocks in scripts unless explicitly requested."
+      - pattern: "def\\s+main\\(.*\\)\\s*:"
+        message: "Avoid including main functions in scripts unless explicitly requested."
+
+  - type: suggest
+    message: |
+      Main functions and __name__ == "__main__" blocks should not be included in scripts by default.
+      
+      If you need to include a main function:
+      1. Make an explicit request to include it in your script
+      2. Consider creating a separate entry point script instead
+
+examples:
+  - input: |
+      # Bad: Including main function or block
+      if __name__ == "__main__":
+          # Code implementation
+          pass
+          
+      def main():
+          # Function implementation
+          pass
+      
+      # Good: No main function or block
+      class MyClass:
+          def process(self):
+              pass
+      
+      def helper_function():
+          pass
+    output: "Code without main function or __main__ block"
+
+metadata:
+  priority: medium
+  version: 1.0
+</rule> 
