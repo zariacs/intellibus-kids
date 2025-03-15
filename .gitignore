@@ -1,0 +1,43 @@
+# Node.js
+node_modules/
+dist/
+cache/
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.*.yml
+docker-compose-*.yml
+.dockerignore
+Dockerfile-*
+.Dockerfile-*
+dockerignore-*
+.Dockerignore-*
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+*.tfstate.backup
+
+# General
+.venv
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+*.log
+*.tmp
+*.tmp.*
+*.bak
+*.backup
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
