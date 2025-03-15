@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'infra/terraform/**'
+      - 'INFRA/terraform/**'
 
 jobs:
   terraform:
