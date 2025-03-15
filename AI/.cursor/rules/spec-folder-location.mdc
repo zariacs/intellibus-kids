@@ -1,0 +1,84 @@
+---
+description: Standards for placing and organizing .spec folders and files in the repository
+globs: *.spec.*, .spec/*
+alwaysApply: false
+---
+---
+description: Standards for placing and organizing .spec folders and files in the repository
+globs: *.spec.*, .spec/*
+alwaysApply: false
+---
+
+# .spec Folder Location
+
+Rules for placing and organizing specification files in the repository.
+
+<rule>
+name: spec_folder_location
+description: Standards for placing specification files in the correct directory
+filters:
+  # Match any .spec files or files in .spec directories
+  - type: file_path
+    pattern: "(\\.spec\\.|\\.spec\\/)"
+  # Match file creation events
+  - type: event
+    pattern: "file_create"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "^(?!\\.spec\\/.*$)"
+        message: "Specification files must be placed in the .spec directory at the project root"
+
+  - type: suggest
+    message: |
+      When creating specification files:
+
+      1. Always place spec files in PROJECT_ROOT/.spec/:
+         ```
+         .spec/
+         ├── project_specs.md
+         ├── development_roles.md
+         ├── api_specs/
+         │   ├── gemini_api.md
+         │   └── ...
+         └── ...
+         ```
+
+      2. Follow the naming convention:
+         - Use snake_case for filenames
+         - Use descriptive names that reflect the spec's purpose
+         - Group related specs in subdirectories
+
+      3. Directory structure:
+         ```
+         PROJECT_ROOT/
+         ├── .spec/
+         │   ├── general_specs.md
+         │   ├── development_roles.md
+         │   ├── api_specs/
+         │   │   └── ...
+         │   └── ...
+         └── ...
+         ```
+
+      4. Never place spec files:
+         - In the project root (except the .spec directory itself)
+         - Mixed with implementation code
+         - In any location outside the .spec directory
+
+examples:
+  - input: |
+      # Bad: Spec file in wrong location
+      specs/api_spec.md
+      my_feature.spec.md
+      
+      # Good: Spec file in correct location
+      .spec/api_spec.md
+      .spec/api/gemini_integration.md
+    output: "Correctly placed specification file"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 
