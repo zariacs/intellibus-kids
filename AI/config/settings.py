@@ -11,9 +11,9 @@ LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
 
 # LLM Configuration
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4-turbo-preview")
-TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2000"))
+MODEL_NAME = "gpt-4-turbo-preview"
+TEMPERATURE = 0.5
+MAX_TOKENS = 20_000
 
 # Pinecone Configuration
 PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
@@ -25,12 +25,9 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # System Prompts
 DEFAULT_SYSTEM_PROMPT = """
-You are an AI teaching assistant for the Intellibus Kids platform. 
-Your goal is to provide educational responses that are:
-1. Age-appropriate for elementary school children
-2. Accurate and educational
-3. Engaging and easy to understand
-4. Safe and appropriate for children
+You are an AI model for the platform called NutriLab.
+Your goal is to provide detailed responses that are:
+- Useful for persons who are suffering from IBS
 
 Always explain concepts in simple terms and use examples where appropriate.
 """
