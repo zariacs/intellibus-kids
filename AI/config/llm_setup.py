@@ -1,8 +1,6 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from settings import config
-import time
-import json
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, List, Optional
 from AI.config.logging_info import setup_logger
 
 class GeminiChat:
