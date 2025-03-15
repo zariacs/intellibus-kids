@@ -1,0 +1,55 @@
+name: Terraform Infrastructure Deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'INFRA/terraform/**'
+
+jobs:
+  terraform:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      TF_LOG: INFO
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: 🛎️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☁️ Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsTerraformRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📥 Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: 🏗 Initialize Terraform with Secrets
+        working-directory: infra/terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_S3_BUCKET }}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -backend-config="secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+
+      - name: 📊 Terraform Plan
+        working-directory: infra/terraform
+        run: terraform plan -out=tfplan
+
+      - name: 🚀 Apply Terraform Changes
+        if: github.event_name == 'push'
+        working-directory: infra/terraform
+        run: terraform apply -auto-approve tfplan
