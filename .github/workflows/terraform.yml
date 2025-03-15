@@ -37,7 +37,7 @@ jobs:
           terraform_version: latest
 
       - name: 🏗 Initialize Terraform with Secrets
-        working-directory: infra/terraform
+        working-directory: INFRA/terraform
         run: |
           terraform init \
             -backend-config="bucket=${{ secrets.TF_S3_BUCKET }}" \
@@ -46,10 +46,10 @@ jobs:
             -backend-config="secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
 
       - name: 📊 Terraform Plan
-        working-directory: infra/terraform
+        working-directory: INFRA/terraform
         run: terraform plan -out=tfplan
 
       - name: 🚀 Apply Terraform Changes
         if: github.event_name == 'push'
-        working-directory: infra/terraform
+        working-directory: INFRA/terraform
         run: terraform apply -auto-approve tfplan
