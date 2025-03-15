@@ -1,0 +1,213 @@
+---
+description: Standards and best practices for integrating LangFuse with LangChain in this project
+globs: **/*.py
+alwaysApply: false
+---
+---
+description: Standards and best practices for integrating LangFuse with LangChain in this project.
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# LangFuse Integration with LangChain
+
+Standards and best practices for integrating LangFuse with LangChain in this project.
+
+<rule>
+name: langfuse_langchain_integration
+description: Guidelines for properly integrating LangFuse observability with LangChain
+filters:
+  # Match files that might integrate LangFuse with LangChain
+  - type: content
+    pattern: "(?s).*langfuse.*langchain.*|.*langchain.*langfuse.*"
+
+actions:
+  - type: suggest
+    message: |
+      ## LangFuse + LangChain Integration Best Practices
+
+      ### 1. Keep Imports Up-to-date
+      Always use the latest import patterns from LangChain, as they change frequently between versions:
+
+      ```python
+      # CORRECT: Use community imports for callbacks
+      from langchain_community.callbacks.manager import get_openai_callback
+      from langfuse.callback import CallbackHandler
+
+      # INCORRECT: Deprecated imports
+      # from langchain.callbacks import get_openai_callback
+      ```
+
+      ### 2. Use Config Parameter for Runtime Callbacks
+      Always use the `config` parameter to pass callbacks at runtime rather than modifying the model:
+
+      ```python
+      # CORRECT: Pass callbacks in config
+      existing_callbacks = model.callbacks or []
+      config = {"callbacks": existing_callbacks + [langfuse_handler]}
+      
+      # Use with invoke, astream, stream, etc.
+      async for chunk in model.astream(prompt_value, config=config):
+          # Process chunk
+          pass
+      ```
+
+      ### 3. Respect Pydantic Models
+      Never try to add custom attributes to Pydantic models like ChatOpenAI:
+
+      ```python
+      # INCORRECT - Will cause error:
+      model.my_custom_attribute = some_value  # Error!
+      
+      # CORRECT - Use runtime configuration:
+      model.invoke(input, config={"callbacks": [handler]})
+      ```
+
+      ### 4. Properly Initialize LangFuse Handler
+      ```python
+      from langfuse.callback import CallbackHandler
+      
+      # Initialize handler with required credentials
+      langfuse_handler = CallbackHandler(
+          public_key=settings.LANGFUSE_PUBLIC_KEY,
+          secret_key=settings.LANGFUSE_SECRET_KEY,
+          host=settings.LANGFUSE_HOST,  # Usually https://cloud.langfuse.com
+          debug=False  # Set to False to disable debug messages that clutter the terminal
+      )
+      ```
+
+      ### 5. Disable Debug Logging
+      To prevent LangFuse from cluttering your terminal with debug messages:
+      
+      ```python
+      # Option 1: Set debug=False when initializing the handler
+      langfuse_handler = CallbackHandler(
+          public_key=settings.LANGFUSE_PUBLIC_KEY,
+          secret_key=settings.LANGFUSE_SECRET_KEY,
+          host=settings.LANGFUSE_HOST,
+          debug=False  # Explicitly disable debug messages
+      )
+      
+      # Option 2: Silence specific loggers
+      import logging
+      logging.getLogger("langfuse").setLevel(logging.WARNING)
+      logging.getLogger("langfuse._task_manager").setLevel(logging.WARNING)
+      ```
+
+      ### 6. Set Context Details for Better Tracing
+      ```python
+      # Set conversation ID for better tracing
+      langfuse_handler.trace_id = conversation_id
+      
+      # Set generation ID for unique identification
+      langfuse_handler.generation_id = f"{conversation_id}-{timestamp}"
+      
+      # Set user ID if available
+      if user_id:
+          langfuse_handler.user_id = user_id
+      ```
+
+      ### 7. Flush Traces in Asynchronous Environments
+      Always flush traces before completing responses in serverless or async environments:
+
+      ```python
+      # In async context
+      try:
+          await langfuse_handler.flushAsync()
+          logger.info("LangFuse traces flushed successfully")
+      except Exception as e:
+          logger.warning(f"Failed to flush LangFuse traces: {str(e)}")
+          
+      # In synchronous context
+      try:
+          langfuse_handler.flush()
+          logger.info("LangFuse traces flushed successfully")
+      except Exception as e:
+          logger.warning(f"Failed to flush LangFuse traces: {str(e)}")
+      ```
+
+      ### 8. Configure Environment-Specific Tracing
+      Set up different tracing configurations for development and production:
+
+      ```python
+      # In configuration file
+      LANGFUSE_DEBUG_ENABLED: bool = os.getenv("LANGFUSE_DEBUG_ENABLED", "False").lower() == "true"
+      
+      # In service initialization
+      is_development = settings.APP_ENV.lower() == "development"
+      
+      # Different log levels based on environment
+      if is_development:
+          # More detailed logs in development
+          logging.getLogger("langfuse").setLevel(logging.INFO)
+      else:
+          # Only warnings and errors in production
+          logging.getLogger("langfuse").setLevel(logging.WARNING)
+      
+      # Add environment metadata to traces
+      langfuse_handler.metadata = {
+          "environment": settings.APP_ENV,
+          "debug_mode": is_development,
+      }
+      ```
+
+      ### 9. Manage Callback Handler Lifecycle
+      In short-lived applications, don't forget to shut down:
+
+      ```python
+      # For async applications
+      await langfuse_handler.shutdownAsync()
+      
+      # For synchronous applications
+      langfuse_handler.shutdown()
+      ```
+
+      ## Common Issues & Troubleshooting
+
+      ### Error: "Completion.create() got an unexpected keyword argument"
+      This usually happens when callbacks are passed directly to API client methods. Always use the config parameter instead of modifying the API client directly.
+
+      ### Error: "ChatOpenAI object has no field X"
+      ChatOpenAI is a Pydantic model - never try to add custom attributes to it. Use the config parameter for runtime configuration.
+
+      ### No Traces Appearing in LangFuse Dashboard
+      - Check API keys are correctly set in environment variables
+      - Ensure traces are being flushed before application terminates
+      - Verify the correct LangFuse host is being used
+      - Check for exceptions during trace sending
+
+      ### Multiple Traces for Single Request
+      This can happen if you're creating new handlers for each request. Create the handler once at initialization and reuse it for each request, updating trace_id and other parameters as needed.
+      
+      ### Debug Messages Cluttering Terminal
+      If you're seeing too many debug messages from LangFuse:
+      
+      1. Set `debug=False` when initializing the handler
+      2. Configure Python logging to suppress LangFuse logs:
+      
+      ```python
+      import logging
+      logging.getLogger("langfuse").setLevel(logging.WARNING)
+      ```
+
+examples:
+  - input: |
+      # Incorrect example - trying to add a method to ChatOpenAI
+      def configure_callbacks(callbacks=None):
+          if callbacks:
+              model.callbacks = [handler] + callbacks
+          return model
+      
+      model.configure_callbacks = configure_callbacks  # This will fail
+    output: |
+      # Correct example - use config parameter
+      existing_callbacks = model.callbacks or []
+      config = {"callbacks": existing_callbacks + [langfuse_handler]}
+      result = model.invoke(input, config=config)
+
+metadata:
+  priority: high
+  version: 1.0
+  author: "AI Assistant"
+  created: "2025-03-14"
+</rule> 
