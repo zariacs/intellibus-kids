@@ -4,14 +4,14 @@
 "use client";
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/clerk-react';
+// import { useUser } from '@clerk/clerk-react';
 
 export default function WelcomePage({
     children,
   }: Readonly<{
     children: React.ReactNode
   }>) {
-    const { user } = useUser();
+    // const { user } = useUser();
     const router = useRouter()
     const status: boolean = true;
 
