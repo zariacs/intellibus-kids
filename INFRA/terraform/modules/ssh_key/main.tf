@@ -16,7 +16,7 @@ data "external" "read_ssh_public_key" {
 
 resource "aws_key_pair" "deployer" {
   key_name   = var.key_name
-  public_key = data.external.read_ssh_public_key.result["output"]
+  public_key = file("~/.ssh/nutrilab.pub")
 
   depends_on = [data.external.read_ssh_public_key]
 }

@@ -36,6 +36,14 @@ jobs:
         with:
           terraform_version: latest
 
+      - name: 🔑 Set up SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OPENSSH_PRIVATE_KEY }}" > ~/.ssh/nutrilab
+          chmod 600 ~/.ssh/nutrilab
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/nutrilab.pub
+          chmod 644 ~/.ssh/nutrilab.pub
+
       - name: 🏗 Initialize Terraform with Secrets
         working-directory: INFRA/terraform
         run: |
