@@ -9,21 +9,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-// Define a more explicit type for the context
-type RouteContext = {
-  params: {
-    id: string;
-  };
-};
-
-// Use the route handler approach from Next.js documentation
-export async function GET(request: NextRequest, context: RouteContext) {
-  // Get the report ID from the URL params
-  const reportId = context.params.id;
+// Export a handler function
+export async function GET(req: NextRequest) {
+  // Extract ID from the URL manually
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/');
+  const reportId = pathParts[pathParts.length - 1];
   
   try {
     // Auth check
-    const { userId } = getAuth(request);
+    const { userId } = getAuth(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
