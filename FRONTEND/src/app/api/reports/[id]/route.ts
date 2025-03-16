@@ -1,4 +1,3 @@
-// app/api/reports/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
@@ -9,10 +8,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''  // Using service role key
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Rewritten to fix the build error
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
   try {
     const { userId } = getAuth(request);
     
@@ -20,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const reportId = params.id;
+    const reportId = context.params.id;
     
     const { data, error } = await supabase
       .from('reports')
