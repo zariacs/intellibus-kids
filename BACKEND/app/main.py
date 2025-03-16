@@ -12,6 +12,7 @@ async def health_check():
         "version": "0.1.0"
     }
 
+# Ignore this and delete it after
 if __name__ == "__main__":
     uvicorn.run(
         "app:app",
