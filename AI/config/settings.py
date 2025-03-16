@@ -47,7 +47,7 @@ class Config:
         self._langfuse_secret_key = os.getenv("LANGFUSE_SECRET_KEY")
         
         # LLM Configuration
-        self._model_name = "gemini-1.5-pro"
+        self._model_name = "gemini-1.5-flash"
         self._temperature = 0.5
         self._max_tokens = None
         self._timeout = None
