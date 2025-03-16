@@ -68,36 +68,57 @@ jobs:
         EC2_HOST: 3.219.34.114
         EC2_USER: ec2-user
         SSH_PRIVATE_KEY: ${{ secrets.OPENSSH_PRIVATE_KEY }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: us-east-1
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
         CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         TF_S3_BUCKET: ${{ secrets.TF_S3_BUCKET }}
         LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
         LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
-        SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
       run: |
         # Save SSH key
         echo "$SSH_PRIVATE_KEY" > deploy_key.pem
         chmod 600 deploy_key.pem
-
+      
         # SSH into EC2 and deploy services
         ssh -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-          # Configure AWS CLI
-          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-          aws configure set region $AWS_REGION
-
-          # Authenticate with AWS ECR
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-          
-          # Pull latest images
-          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
-          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
-          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
-
-          # Start services with Docker Compose
-          docker-compose down
-          docker-compose up -d
+        # Install Docker & Docker-Compose if missing
+        if ! command -v docker &> /dev/null; then
+        echo "Installing Docker..."
+        sudo yum update -y
+        sudo yum install -y docker
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        sudo usermod -aG docker $USER
+        fi
+          if ! command -v docker-compose &> /dev/null; then
+            echo "Installing Docker Compose..."
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+        fi
+      
+        # Configure AWS CLI
+        mkdir -p ~/.aws
+        echo "[default]" > ~/.aws/credentials
+        echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
+        echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+        echo "[default]" > ~/.aws/config
+        echo "region=$AWS_REGION" >> ~/.aws/config
+      
+        # Authenticate with AWS ECR
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      
+        # Pull latest images
+        docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
+        docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
+        docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
+      
+        # Start services with Docker Compose
+        docker-compose down
+        docker-compose up -d
         EOF
+      
+    
