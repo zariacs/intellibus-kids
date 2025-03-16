@@ -1,21 +1,29 @@
-# Use the official Python image (slim version to keep it lightweight)
-FROM python:3.12-alpine
+# Use a base Python image
+FROM python:3.12
 
-# Copy only requirements first for better caching
-COPY requirements.txt /app/
-
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Install system dependencies including Rust
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (Required for `tiktoken`)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy the required files into the container
-COPY . /app
+# Copy the application code
+COPY . .
 
-# Expose port 8000 for FastAPI
+# Expose port
 EXPOSE 8000
 
-# Command to start FastAPI
+# Start the application
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
