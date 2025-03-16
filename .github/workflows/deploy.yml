@@ -131,6 +131,10 @@ jobs:
           aws ecr get-login-password --region us-east-1 | \
           docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
       
+          docker rmi -f $(docker images -aq)
+          docker stop $(docker ps -aq) && docker rm -f $(docker ps -aq)
+
+          
           # ✅ Pull latest images
           docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/my-frontend:latest
           docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/my-backend:latest
