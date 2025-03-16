@@ -9,10 +9,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } } 
-) {
+export async function GET(request: NextRequest, context: { params: { id: string } } ) {
   try {
     // Verify the user is authorized as a doctor
     const { userId } = getAuth(request);
