@@ -47,7 +47,7 @@ class Config:
         self._langfuse_secret_key = os.getenv("LANGFUSE_SECRET_KEY")
         
         # LLM Configuration
-        self._model_name = "gemini-1.5-flash"
+        self._model_name = os.getenv("MODEL_NAME", "gemini-1.5-flash")
         self._temperature = 0.5
         self._max_tokens = None
         self._timeout = None
@@ -277,6 +277,10 @@ class Config:
             
         if not self._pinecone_environment:
             errors.append("PINECONE_ENVIRONMENT is not set")
+        
+        # Check if model name is set
+        if not self._model_name:
+            errors.append("MODEL_NAME is not set, using default 'gemini-1.5-flash'")
             
         return errors
 
