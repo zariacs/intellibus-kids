@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } } // ✅ Corrected typing here
+  context: { params: { id: string } } // ✅ Corrected typing here
 ) {
   try {
     // Verify the user is authorized as a doctor
@@ -22,7 +22,7 @@ export async function GET(
     }
 
     // You may want to add a check here to verify the user is a doctor
-    const reportId = params.id;
+    const reportId = context.params.id;
 
     if (!reportId) {
       return NextResponse.json({ error: "Missing ID parameter" }, { status: 400 });
