@@ -1,4 +1,4 @@
-// app/api/doctor/pending-requests/route.ts
+// app/api/nutrition-requests/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
@@ -11,61 +11,52 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify the user is authorized as a doctor
     const { userId } = getAuth(request);
-    
+    // If user is not authenticated, return 401
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    // You may want to add a check here to verify the user is a doctor
-    // For example, by checking a 'role' field in your users table
+    // Get query parameters
+    const url = new URL(request.url);
+    const statusParam = url.searchParams.get("status");
+    // Parse status filter - if provided, split by comma
+    const statusFilter = statusParam ? statusParam.split(",") : null;
     
-    // Fetch all pending nutrition requests with joined patient details
-    const { data, error } = await supabase
+    // Query Supabase for nutrition requests
+    let query = supabase
       .from('nutrition_requests')
-      .select(`
-        id,
-        created_at,
-        conditions,
-        status,
-        patient_id,
-        dietary_preference,
-        patients:patient_id (
-          id,
-          name,
-          age,
-          gender,
-          email
-        )
-      `)
-      .eq('status', 'pending')
+      .select('*')
+      .eq('patient_id', userId)
       .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Supabase error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // Add status filter if provided
+    if (statusFilter && statusFilter.length > 0) {
+      query = query.in('status', statusFilter);
     }
     
-    // Process the data to ensure proper format
-    const processedData = data.map(request => ({
+    const { data, error } = await query;
+    if (error) {
+      console.error("Supabase error:", error);
+      return NextResponse.json(
+        { error: "Database error occurred" },
+        { status: 500 }
+      );
+    }
+    
+    // Process the results - parse string arrays stored as JSON
+    const processedRequests = data.map(request => ({
       ...request,
       conditions: parseStringArray(request.conditions),
-      // Ensure patients data is structured correctly
-      patient: request.patients || { 
-        id: request.patient_id,
-        name: "Unknown",
-        age: null,
-        gender: null,
-        email: null
-      }
+      allergies: parseStringArray(request.allergies),
+      diet_restrictions: parseStringArray(request.diet_restrictions),
     }));
     
-    return NextResponse.json(processedData);
+    return NextResponse.json(processedRequests);
   } catch (error) {
-    console.error("Error fetching pending requests:", error);
+    console.error("Error fetching nutrition requests:", error);
     return NextResponse.json(
-      { error: "Failed to fetch pending requests" },
+      { error: "Failed to fetch nutrition requests" },
       { status: 500 }
     );
   }
@@ -74,7 +65,6 @@ export async function GET(request: NextRequest) {
 // Helper function to parse string arrays stored as JSON or comma-separated values
 function parseStringArray(value: string | null): string[] {
   if (!value) return [];
-  
   try {
     return JSON.parse(value);
   } catch (error) {
