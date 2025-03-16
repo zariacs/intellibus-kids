@@ -1,12 +1,9 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from config.settings import config
-from typing import Any, List, Optional, Dict, Union, Tuple
+from typing import Any, List, Optional, Union, Tuple
 from config.logging_info import setup_logger
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI as LangchainChatOpenAI
 import time
-import json
 
 
 class OpenAIChat:
