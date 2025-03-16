@@ -30,6 +30,18 @@ jobs:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         AWS_REGION: us-east-1
 
+    - name: Ensure AWS ECR Repository Exists
+      env:
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        AWS_REGION: us-east-1
+      run: |
+        aws ecr describe-repositories --repository-names my-frontend --region $AWS_REGION || \
+        aws ecr create-repository --repository-name my-frontend --region $AWS_REGION
+        aws ecr describe-repositories --repository-names my-backend --region $AWS_REGION || \
+        aws ecr create-repository --repository-name my-backend --region $AWS_REGION
+        aws ecr describe-repositories --repository-names my-ai --region $AWS_REGION || \
+        aws ecr create-repository --repository-name my-ai --region $AWS_REGION
+
     - name: Build, Tag, and Push Docker Images to AWS ECR
       env:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
