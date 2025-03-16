@@ -85,7 +85,7 @@ jobs:
         echo "$SSH_PRIVATE_KEY" > deploy_key.pem
         chmod 600 deploy_key.pem
       
-        ssh -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "bash -s" << 'EOF'
+        ssh -tt -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "bash -s" << 'EOF'
         
         # ✅ Install Docker & Docker Compose if missing
         if ! command -v docker &> /dev/null; then
