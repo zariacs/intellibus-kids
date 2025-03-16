@@ -31,6 +31,19 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY={GEMINI_API_KEY}
+      - MODEL_NAME={MODEL_NAME}
+      - OPENAI_API_KEY={OPENAI_API_KEY}
+    networks:
+      - intellibus-network
+
+  rag-pipeline:
+    build: ./RAGPIPELINE
+    ports:
+      - "8005:8005"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
       - intellibus-network
 

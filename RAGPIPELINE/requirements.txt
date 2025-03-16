@@ -1,0 +1,9 @@
+openai
+langchain
+supabase
+pdfplumber
+tiktoken
+beautifulsoup4
+requests
+pypdf
+psycopg2-binary

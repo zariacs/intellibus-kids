@@ -3,9 +3,7 @@ import json
 import time
 import traceback
 from typing import Dict, Any
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, BackgroundTasks, Request
 
 from models.request_models import PatientReportRequest, PatientReportResponse
 from services.medical_report import MedicalReportService
