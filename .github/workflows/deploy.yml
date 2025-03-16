@@ -23,6 +23,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Clear GitHub Actions cache
+      run: |
+        rm -rf /home/runner/.cache/yarn
+        rm -rf /home/runner/.cache/pip
+        rm -rf /home/runner/.npm
+
+    - name: Cache node modules
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
     - name: Login to Amazon ECR
       env:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
