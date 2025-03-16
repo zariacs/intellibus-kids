@@ -46,13 +46,13 @@ class GeminiChat:
         self.max_tokens = max_tokens if max_tokens is not None else config.max_tokens
         self.timeout = timeout if timeout is not None else config.timeout
         self.max_retries = max_retries if max_retries is not None else config.max_retries
-        self.api_key = google_api_key or config.google_api_key
+        self.google_api_key = google_api_key or config.google_api_key
         
         # Set up callbacks
         self.callbacks = custom_callbacks or ([config.langfuse_handler] if config.langfuse_handler else [])
         
         # Validate essential parameters
-        if not self.api_key:
+        if not self.google_api_key:
             self.logger.error("Missing Google API key")
             raise ValueError("Google API key must be provided either directly or via config")
         
@@ -66,7 +66,7 @@ class GeminiChat:
                 max_tokens=self.max_tokens,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
-                google_api_key=self.api_key,
+                google_api_key=self.google_api_key,
             )
             self.logger.info("LLM initialization successful")
         except Exception as e:

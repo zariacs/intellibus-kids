@@ -1,7 +1,7 @@
 # LOCAL IMPORTS
 from config.logging_info import setup_logger
 from config.llm_setup import GeminiChat 
-from AI.models.report import LLMResponse, MealDay, Ingredients
+from models.report import LLMResponse, MealDay, Ingredients
 from config.settings import config
 
 # Third Party

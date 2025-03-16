@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field, validator
 from services.report_generation import ChatService
+from models.report import MealDay, Ingredients
 
 # Initialize router
 router = APIRouter(prefix="/api/v1", tags=["Medical Reports"])
@@ -34,14 +35,47 @@ class PatientDataRequest(BaseModel):
             raise ValueError('condition cannot be empty')
         return v
 
-# Response Model
+# Response Models
 class MedicalReportResponse(BaseModel):
     markdown_report: str = Field(..., description="The medical report in markdown format")
+
+# New structured JSON response model
+class StructuredMealDay(BaseModel):
+    day: str = Field(..., description="Day of the week")
+    breakfast: str = Field(..., description="Breakfast meal with calorie count")
+    lunch: str = Field(..., description="Lunch meal with calorie count")
+    dinner: str = Field(..., description="Dinner meal with calorie count")
+
+class StructuredIngredients(BaseModel):
+    produce: List[str] = Field(..., description="List of fresh produce ingredients")
+    groceries: List[str] = Field(..., description="List of grocery items")
+    dry_goods: List[str] = Field(..., description="List of dry goods and grains")
+
+class StructuredMedicalReportResponse(BaseModel):
+    # Patient information section
+    patient_name: str = Field(..., description="Patient's full name")
+    patient_age: str = Field(..., description="Patient's age")
+    patient_gender: str = Field(..., description="Patient's gender")
+    patient_weight: str = Field(..., description="Patient's weight")
+    patient_height: str = Field(..., description="Patient's height")
+    patient_condition: str = Field(..., description="Patient's medical condition")
+    patient_allergies: str = Field(..., description="Patient's allergies")
+    
+    # Report sections
+    report_title: str = Field(..., description="Title of the medical report")
+    condition_definition: str = Field(..., description="A clear definition of the patient's medical condition")
+    challenges: List[str] = Field(..., description="Challenges faced by the patient due to their condition")
+    
+    # Meal plan (high priority with multi-day breakdown)
+    meal_plan: List[StructuredMealDay] = Field(..., description="A 7-day meal plan with breakfast, lunch, and dinner")
+    
+    # Ingredients with category breakdown
+    ingredients: StructuredIngredients = Field(..., description="Categorized list of ingredients needed for the meal plan")
 
 @router.post("/generate_report", response_model=MedicalReportResponse)
 async def generate_medical_report(patient_data: PatientDataRequest):
     """
-    Generate a comprehensive medical report based on patient data
+    Generate a comprehensive medical report based on patient data in markdown format
     
     The report includes:
     - Patient details
@@ -71,6 +105,42 @@ async def generate_medical_report(patient_data: PatientDataRequest):
         
         # Return the report
         return {"markdown_report": markdown_report}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@router.post("/generate_structured_report", response_model=StructuredMedicalReportResponse)
+async def generate_structured_medical_report(patient_data: PatientDataRequest):
+    """
+    Generate a comprehensive medical report based on patient data in structured JSON format
+    
+    The report includes:
+    - Patient details (name, age, gender, weight, height, condition, allergies)
+    - Definition of the condition
+    - Challenges faced by the patient
+    - A 7-day meal plan with breakfast, lunch, and dinner for each day
+    - List of ingredients categorized by type (produce, groceries, dry goods)
+    
+    All meal plans are specifically tailored to the patient's condition and respect any allergies
+    or dietary preferences.
+    """
+    try:
+        # Convert Pydantic model to dict
+        patient_dict = patient_data.dict()
+        
+        # Process the patient data
+        response = chat_service.process_patient_data(patient_dict)
+        
+        # Check for errors in response
+        if "error" in response:
+            raise HTTPException(status_code=500, detail=response["error"])
+        
+        # Check if we have a structured response
+        if not all(key in response for key in ["patient_name", "meal_plan", "ingredients"]):
+            raise HTTPException(status_code=500, detail="Failed to generate structured report content")
+        
+        # Return the structured report directly
+        return response
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
