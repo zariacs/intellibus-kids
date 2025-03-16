@@ -79,6 +79,7 @@ jobs:
         CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
+        export AWS_REGION=us-east-1
         echo "$SSH_PRIVATE_KEY" > deploy_key.pem
         chmod 600 deploy_key.pem
       
@@ -102,9 +103,11 @@ jobs:
       
         # ✅ AWS CLI Configuration
         mkdir -p ~/.aws
+        touch ~/.aws/credentials
         echo "[default]" > ~/.aws/credentials
         echo "aws_access_key_id=${AWS_ACCESS_KEY_ID}" >> ~/.aws/credentials
         echo "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}" >> ~/.aws/credentials
+        touch ~/.aws/config
         echo "[default]" > ~/.aws/config
         echo "region=${AWS_REGION}" >> ~/.aws/config
       
