@@ -5,7 +5,7 @@ FROM node:23.10.0 AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json first (to leverage Docker caching)
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 # Install dependencies
 RUN npm install
