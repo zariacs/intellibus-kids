@@ -8,6 +8,7 @@ class User(BaseModel):
     email: EmailStr
     password: str
     nutri_code: Optional[str] = None
+    demographics: Optional[dict] = None  # For storing age, gender, weight, height as JSON
 
 class CreateUser(BaseModel):
     name: str
@@ -15,3 +16,4 @@ class CreateUser(BaseModel):
     email: EmailStr
     nutri_code: Optional[str] = None
     password: str
+   

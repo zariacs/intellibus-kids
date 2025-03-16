@@ -8,8 +8,10 @@ load_dotenv()
 class Settings(BaseSettings):
     # API Settings
     API_V1_STR: str = "/api"
-    PROJECT_NAME: str = "Your API Name"
+    PROJECT_NAME: str = "NUTRI LAB"
     
+    NEVIN: str = os.environ.get('NEVIN')
+
     # Database Settings
     SUPABASE_URL: str | None = os.environ.get('SUPABASE_URL')
     SUPABASE_API: str | None = os.environ.get('SUPABASE_KEY')
@@ -29,7 +31,3 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
-
-
-print(f"Loaded SUPABASE_URL: {settings.SUPABASE_URL}")
-print(f"Loaded SUPABASE_API: {settings.SUPABASE_API}")
