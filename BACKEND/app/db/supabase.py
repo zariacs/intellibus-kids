@@ -5,3 +5,8 @@ supabase = create_client(
     supabase_url=settings.SUPABASE_URL,
     supabase_key=settings.SUPABASE_API
 )
+
+
+
+def get_db():
+    return supabase

@@ -6,10 +6,12 @@ class User(BaseModel):
     name: str 
     role: str
     email: EmailStr
-    nutriCode: Optional[str] = None
+    password: str
+    nutri_code: Optional[str] = None
 
 class CreateUser(BaseModel):
     name: str
     role: str
     email: EmailStr
-    nutriCode: Optional[str] = None
+    nutri_code: Optional[str] = None
+    password: str
