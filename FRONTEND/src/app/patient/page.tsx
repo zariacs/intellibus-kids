@@ -8,10 +8,11 @@ const patients = [
     { id: 3, name: 'Sam Johnson', age: 40, condition: 'Asthma' },
 ];
 
-export default function Doctor() {
+export default function PatientDashboard() {
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-4">Patient List</h1>
+            <div></div>
+            <h1 className="text-2xl font-bold mb-4">Patient List I am actually a patient</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {patients.map((patient) => (
                     <Card key={patient.id} className="shadow-lg">
