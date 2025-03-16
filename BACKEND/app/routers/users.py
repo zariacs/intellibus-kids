@@ -6,7 +6,7 @@ from typing import List
 
 router = APIRouter()
 
-user_service =UserService()
+user_service = UserService()
 
 @router.post("/register", response_model=User)
 async def create_user(user: CreateUser):
