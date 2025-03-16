@@ -239,3 +239,34 @@ class NutritionRequestService:
                 status_code=500,
                 detail=f"Failed to fetch patient requests: {str(e)}"
             )
+
+    async def get_pending_requests_for_doctor(self, nutri_code: str) -> List[NutritionRequest]:
+        try:
+            # Verify the nutri_code is valid (optional validation)
+            if not nutri_code:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid doctor identification code"
+                )
+                
+            # Query for pending requests that match this doctor's nutri_code
+            result = supabase.table(self.table)\
+                .select("*")\
+                .eq("status", "pending")\
+                .eq("nutri_code", nutri_code)\
+                .order("created_at", desc=True)\
+                .execute()
+                
+            if not result.data:
+                return []  # Return empty list if no pending requests found
+                
+            return [NutritionRequest(**request) for request in result.data]
+            
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            print(f"Error fetching doctor's pending requests: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch pending requests: {str(e)}"
+            )

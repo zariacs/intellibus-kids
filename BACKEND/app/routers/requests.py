@@ -164,3 +164,29 @@ async def get_patient_requests(user_id: str):
             status_code=500,
             detail=f"Failed to fetch patient requests: {str(e)}"
         )
+
+@router.get("/doctor/requests/pending", response_model=List[NutritionRequest])
+async def get_doctor_pending_requests(user_id: str):
+    try:
+        # Verify the user has doctor role
+        doctor_data = await user_service.verify_doctor_role(user_id)
+        
+        # Get the doctor's nutri_code
+        nutri_code = doctor_data.get("nutri_code")
+        if not nutri_code:
+            raise HTTPException(
+                status_code=400,
+                detail="Doctor profile missing required nutri_code"
+            )
+        
+        # Get all pending requests for this doctor
+        pending_requests = await request_service.get_pending_requests_for_doctor(nutri_code)
+        
+        return pending_requests
+        
+    except Exception as e:
+        print(f"Error fetching doctor's pending requests: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch pending requests: {str(e)}"
+        )

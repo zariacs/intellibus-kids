@@ -67,16 +67,37 @@ class UserService:
                 detail=f"Failed to get user role: {str(e)}"
             )
 
-    async def verify_doctor_role(self, user_id: str) -> bool:
-        """Verify if user has doctor role"""
+    async def verify_doctor_role(self, user_id: str) -> dict:
         try:
-            role = await self.get_user_role(user_id)
-            if role != "doctor":
+            # Get the user data
+            result = supabase.table("cust_users")\
+                .select("*")\
+                .eq("user_id", user_id)\
+                .execute()
+                
+            if not result.data:
                 raise HTTPException(
-                    status_code=403,
-                    detail="Only doctors can perform this action"
+                    status_code=404,
+                    detail=f"User with ID {user_id} not found"
                 )
-            return True
+                
+            user_data = result.data[0]
+            
+            # Check if user has doctor role
+            if user_data.get("role") != "doctor":
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Access denied: User does not have doctor privileges"
+                )
+                
+            # Make sure doctor has a nutri_code
+            if not user_data.get("nutri_code"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Doctor profile is incomplete: missing nutri_code"
+                )
+                
+            return user_data
             
         except HTTPException as e:
             raise e
@@ -84,5 +105,14 @@ class UserService:
             print(f"Error verifying doctor role: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to verify doctor role: {str(e)}"
+                detail=f"Failed to verify user role: {str(e)}"
             )
+                
+        except HTTPException as e:
+                raise e
+        except Exception as e:
+            print(f"Error verifying doctor role: {str(e)}")
+            raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to verify doctor role: {str(e)}"
+                )
