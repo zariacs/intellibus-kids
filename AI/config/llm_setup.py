@@ -1,7 +1,9 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from config.settings import config
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from config.logging_info import setup_logger
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 class GeminiChat:
     """
