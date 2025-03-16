@@ -1,18 +1,29 @@
+from typing import List, Optional
 from pydantic import BaseModel, Field   
 
 class LLMResponse(BaseModel):
-    """Pydantic model for a LLM's response to a question."""
-    #answer: str = Field(description="A 200 word essay from the details using the article document data.", default="")
-    #title: List[str] = Field(description="The titles of the articles", default_factory=list)
-    #links: List[str] = Field(description="The URLs of the articles", default_factory=list)
-    #name_source: List[str] = Field(description="The sources of the articles", default_factory=list)
-    #date: List[str] = Field(description="The dates of the articles", default_factory=list)
-    #metadata: Optional[dict] = Field(description="Relevant non-empty article metadata", default_factory=dict)
+    """Pydantic model for a LLM's response to a medical report question."""
     
-    patient_details: list[str] = Field(description="Contains the personal details of the patient")
-    meal_plan: str = Field(description="A 7-day meal plan for a patient")
-    ingredients: str = Field(description="The ingredients which will be used to create the meal plan")
-    
+    patient_details: List[str] = Field(
+        description="Contains the personal details of the patient (name, age, condition, allergies)",
+        default_factory=list
+    )
+    condition_definition: str = Field(
+        description="A clear definition of the patient's medical condition",
+        default=""
+    )
+    challenges: List[str] = Field(
+        description="Challenges faced by the patient due to their condition",
+        default_factory=list
+    )
+    meal_plan: str = Field(
+        description="A 7-day meal plan with breakfast, lunch, and dinner that addresses the patient's condition",
+        default=""
+    )
+    ingredients: str = Field(
+        description="A categorized list of ingredients needed for the meal plan (produce, groceries, dry goods)",
+        default=""
+    )
     
     class Config:
         """Configuration for the Pydantic model"""
