@@ -41,12 +41,6 @@ jobs:
           aws ecr create-repository --repository-name $repo --region us-east-1
         done
 
-    - name: Upload Docker Compose File
-      run: |
-        echo "$SSH_PRIVATE_KEY" > deploy_key.pem
-        chmod 600 deploy_key.pem
-        scp -i deploy_key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@$EC2_HOST:/home/ec2-user/
-
     - name: Deploy to EC2
       env:
         EC2_HOST: 3.219.34.114
@@ -56,6 +50,7 @@ jobs:
       run: |
         echo "$SSH_PRIVATE_KEY" > deploy_key.pem
         chmod 600 deploy_key.pem
+        scp -i deploy_key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@$EC2_HOST:/home/ec2-user/
 
         ssh -tt -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "bash -s" << 'EOF'
         
