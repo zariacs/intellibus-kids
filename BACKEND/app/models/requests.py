@@ -22,7 +22,7 @@ class NutritionRequest(BaseModel):
     triggers: Optional[List[str]] = None
     concerns: Optional[List[str]] = None
     demographics: Optional[Demographics] = None  # Added demographics
-    nevin_suggestion: Optional[str] = None
+    nevin_suggest: Optional[str] = None
     approved_reccomendation: Optional[str] = None
     status: Optional[str] = 'Pending'
     updated_at: Optional[datetime] = None
@@ -39,3 +39,5 @@ class NutritionRequestCreate(BaseModel):
     triggers: Optional[List[str]] = None
     concerns: Optional[List[str]] = None
     demographics: Optional[Demographics] = None 
+    nevin_suggest: Optional[str] = None
+
