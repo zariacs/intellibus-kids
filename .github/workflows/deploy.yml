@@ -43,7 +43,29 @@ jobs:
 
     # 🚨 SKIP IMAGE BUILDING (Temporarily for Debugging) 🚨
     - name: Build, Tag, and Push Docker Images to AWS ECR
-      if: false  # <== Disable this step temporarily
+      if: false
+      env:
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        AWS_REGION: us-east-1
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      run: |
+        # Ensure the build directory exists
+        mkdir -p ./FRONTEND/.env.production
+        
+        # Pass environment variables properly for Next.js build
+        echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" > ./FRONTEND/.env.production
+        # Build and push frontend
+        docker build --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY -t my-frontend:latest ./FRONTEND
+        docker tag my-frontend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
+        # Build and push backend
+        docker build -t my-backend:latest ./BACKEND
+        docker tag my-backend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
+        # Build and push AI service
+        docker build -t my-ai:latest ./AI
+        docker tag my-ai:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
 
     - name: Deploy to EC2
       env:
