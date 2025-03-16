@@ -40,4 +40,5 @@ terraform.tfvars
 *.swp
 *.swo
 *.DS_Store
+*__pycache*
 Thumbs.db
