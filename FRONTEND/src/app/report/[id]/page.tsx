@@ -284,27 +284,27 @@ export default function PatientReportViewer() {
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={{
-                h1: ({node, ...props}) => <h1 className="text-3xl font-bold mt-6 mb-4 text-blue-800" {...props} />,
-                h2: ({node, ...props}) => <h2 className="text-2xl font-bold mt-6 mb-3 text-blue-700 border-b pb-1" {...props} />,
-                h3: ({node, ...props}) => <h3 className="text-xl font-semibold mt-4 mb-2 text-blue-600" {...props} />,
-                p: ({node, ...props}) => <p className="my-3 leading-relaxed" {...props} />,
-                ul: ({node, ...props}) => <ul className="my-3 list-disc pl-6" {...props} />,
-                ol: ({node, ...props}) => <ol className="my-3 list-decimal pl-6" {...props} />,
-                li: ({node, ...props}) => <li className="my-1" {...props} />,
-                table: ({node, ...props}) => (
+                h1: ({...props}) => <h1 className="text-3xl font-bold mt-6 mb-4 text-blue-800" {...props} />,
+                h2: ({...props}) => <h2 className="text-2xl font-bold mt-6 mb-3 text-blue-700 border-b pb-1" {...props} />,
+                h3: ({...props}) => <h3 className="text-xl font-semibold mt-4 mb-2 text-blue-600" {...props} />,
+                p: ({...props}) => <p className="my-3 leading-relaxed" {...props} />,
+                ul: ({...props}) => <ul className="my-3 list-disc pl-6" {...props} />,
+                ol: ({...props}) => <ol className="my-3 list-decimal pl-6" {...props} />,
+                li: ({...props}) => <li className="my-1" {...props} />,
+                table: ({...props}) => (
                   <div className="overflow-x-auto my-4">
                     <table className="min-w-full border-collapse border border-gray-300" {...props} />
                   </div>
                 ),
-                thead: ({node, ...props}) => <thead className="bg-gray-100" {...props} />,
-                th: ({node, ...props}) => <th className="border border-gray-300 px-4 py-2 text-left font-semibold" {...props} />,
-                td: ({node, ...props}) => <td className="border border-gray-300 px-4 py-2" {...props} />,
-                tr: ({node, ...props}) => <tr className="even:bg-gray-50" {...props} />,
-                a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
-                strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
-                em: ({node, ...props}) => <em className="italic" {...props} />,
-                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4" {...props} />,
-                code: ({node, ...props}) => <code className="bg-gray-100 rounded px-1 py-0.5 font-mono text-sm" {...props} />,
+                thead: ({...props}) => <thead className="bg-gray-100" {...props} />,
+                th: ({...props}) => <th className="border border-gray-300 px-4 py-2 text-left font-semibold" {...props} />,
+                td: ({...props}) => <td className="border border-gray-300 px-4 py-2" {...props} />,
+                tr: ({...props}) => <tr className="even:bg-gray-50" {...props} />,
+                a: ({...props}) => <a className="text-blue-600 hover:underline" {...props} />,
+                strong: ({...props}) => <strong className="font-bold" {...props} />,
+                em: ({...props}) => <em className="italic" {...props} />,
+                blockquote: ({...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4" {...props} />,
+                code: ({...props}) => <code className="bg-gray-100 rounded px-1 py-0.5 font-mono text-sm" {...props} />,
               }}
             >
               {markdownContent}

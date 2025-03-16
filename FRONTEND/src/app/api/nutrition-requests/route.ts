@@ -64,10 +64,9 @@ function parseStringArray(value: string | null): string[] {
   if (!value) return [];
   
   try {
-    // First try to parse as JSON
     return JSON.parse(value);
-  } catch (e) {
-    // If not valid JSON, treat as comma-separated
+  } catch (error) {
+    console.error("JSON parsing failed, treating as comma-separated:", error);
     return value.split(',').map(item => item.trim());
   }
 }

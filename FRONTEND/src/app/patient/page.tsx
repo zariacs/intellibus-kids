@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -126,12 +126,12 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
       // Handle triggers and concerns that might be entered as comma-separated text
       let triggersArray = values.triggers;
       if (!Array.isArray(triggersArray) && typeof triggersArray === 'string') {
-        triggersArray = triggersArray.split(',').map(item => item.trim()).filter(item => item.length > 0);
+        triggersArray = (triggersArray as string).split(',').map(item => item.trim()).filter(item => item.length > 0);
       }
       
       let concernsArray = values.concerns;
       if (!Array.isArray(concernsArray) && typeof concernsArray === 'string') {
-        concernsArray = concernsArray.split(',').map(item => item.trim()).filter(item => item.length > 0);
+        concernsArray = (concernsArray as string).split(',').map(item => item.trim()).filter(item => item.length > 0);
       }
       
       // Transform form data to match the required JSON structure
@@ -434,7 +434,7 @@ console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_KEY);
               <FormField
                 control={form.control}
                 name="medications"
-                render={({ field }) => (
+                render={({  }) => (
                   <FormItem>
                     <FormLabel>Medications</FormLabel>
                     <FormDescription>

@@ -162,7 +162,7 @@ export default function DoctorDashboardPage() {
     fetchPendingRequests();
   }, [user, isLoaded, useDummyData]);
 
-  const handleReviewRequest = (requestId: number) => {
+  const handleReviewRequest = () => {
     // For demo purposes, always route to report/3
     // In production, this would use the actual requestId
     window.location.href = '/report/3';
@@ -264,7 +264,7 @@ export default function DoctorDashboardPage() {
                 <div className="w-full">
                   <Button 
                     className="w-full" 
-                    onClick={() => handleReviewRequest(request.id)}
+                    onClick={() => handleReviewRequest()}
                   >
                     Review Request
                   </Button>

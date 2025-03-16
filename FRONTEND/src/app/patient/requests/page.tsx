@@ -81,7 +81,7 @@ export default function NutritionRequestsPage() {
     fetchRequests();
   }, [user, isLoaded, useDummyData]);
   
-  const handleViewReport = (requestId: number) => {
+  const handleViewReport = () => {
     // For demo purposes, always route to report/3
     window.location.href = '/report/3';
     
@@ -192,7 +192,7 @@ export default function NutritionRequestsPage() {
                     variant="ghost" 
                     size="sm" 
                     className="text-blue-600 hover:text-blue-800"
-                    onClick={() => handleViewReport(request.id)}
+                    onClick={() => handleViewReport()}
                   >
                     View Report
                   </Button>
