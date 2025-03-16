@@ -23,24 +23,6 @@ class MedicalReportService:
         logger.info(f"Initializing LLM with model: {model}")
         self.llm = ChatOpenAI(api_key=api_key, model=model, temperature=0)
         
-        # Define medical tools
-        @tool
-        def calculate_bmi(weight_kg: float, height_cm: float) -> str:
-            """Calculate BMI (Body Mass Index) using weight in kg and height in cm."""
-            height_m = height_cm / 100
-            bmi = weight_kg / (height_m * height_m)
-            category = ""
-            if bmi < 18.5:
-                category = "underweight"
-            elif bmi < 25:
-                category = "normal weight"
-            elif bmi < 30:
-                category = "overweight"
-            else:
-                category = "obese"
-            logger.debug(f"Calculated BMI: {bmi:.1f} ({category}) for weight {weight_kg}kg and height {height_cm}cm")
-            return f"BMI: {bmi:.1f} ({category})"
-        
         @tool
         def check_diabetes_symptoms(symptoms: List[str]) -> str:
             """Check if symptoms match common diabetes indicators."""
@@ -75,7 +57,27 @@ class MedicalReportService:
             logger.debug(f"Dietary analysis for {condition} with allergies {allergies}: {dietary_advice}")
             return dietary_advice
         
-        self.tools = [calculate_bmi, check_diabetes_symptoms, analyze_dietary_needs]
+        @tool
+        def generate_three_day_meal_plan(condition: str, dietary_preferences: List[str], allergies: List[str]) -> str:
+            """Generate a 3-day meal plan based on medical condition, dietary preferences and allergies."""
+            logger.info(f"Generating 3-day meal plan for condition: {condition}")
+            
+            # Start with a reminder about the 3-day limit
+            meal_plan_guidance = "Generate a 3-day meal plan (exactly 3 days, not more) "
+            meal_plan_guidance += f"for a patient with {condition}. "
+            
+            if dietary_preferences:
+                meal_plan_guidance += f"Consider these dietary preferences: {', '.join(dietary_preferences)}. "
+                
+            if allergies:
+                meal_plan_guidance += f"Avoid these allergens: {', '.join(allergies)}. "
+                
+            meal_plan_guidance += "The meal plan should include breakfast, lunch, dinner, and snacks for each day."
+            
+            logger.debug(f"Meal plan guidance created: {meal_plan_guidance}")
+            return meal_plan_guidance
+        
+        self.tools = [check_diabetes_symptoms, analyze_dietary_needs, generate_three_day_meal_plan]
         logger.info(f"Initialized {len(self.tools)} medical tools")
         
         # Custom system prompt for accurate medical report generation
@@ -84,6 +86,10 @@ class MedicalReportService:
         Generate accurate, detailed medical information based on the patient details provided.
         Use the available tools to enhance the report with calculated values and checks.
         The output should be a complete medical report with all required fields populated.
+        
+        IMPORTANT: When generating meal plans, you MUST limit them to exactly 3 days.
+        Do not create meal plans for more than 3 days under any circumstances.
+        Structure the meal plan with days 1-3 only, providing breakfast, lunch, dinner, and snacks for each day.
         """
         
         # Create the React agent with structured output
@@ -140,4 +146,5 @@ class MedicalReportService:
                 prompt += f"{key.replace('_', ' ').title()}: {value}\n"
         
         prompt += "\nCreate a complete medical report with all required fields."
+        prompt += "\nIf a meal plan is needed, ALWAYS limit it to EXACTLY 3 days, not 7 days or any other number."
         return prompt
