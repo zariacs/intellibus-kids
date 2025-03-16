@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Server-side Supabase client
 const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 // Simple helper function that gets the ID from the URL
