@@ -1,6 +1,6 @@
 # LOCAL IMPORTS
 from config.logging_info import setup_logger
-from config.llm_setup import GeminiChat 
+from config.llm_setup import OpenAIChat
 from models.report import LLMResponse, MealDay, Ingredients
 from config.settings import config
 
@@ -11,7 +11,9 @@ from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import time
 import re
+import json
 from typing import Dict, Any, Optional, List
+from pydantic import BaseModel
 
 # Setting up the logger file
 logger = setup_logger(name=__name__)
@@ -33,9 +35,9 @@ class ChatService:
     def __init__(self):
         """Initialize report generartion service with required dependencies"""
         try:
-            # Initialize Gemini using default config settings
+            # Initialize OpenAI using default config settings
             logger.info("Initializing LLM service...")
-            self.llm = GeminiChat()
+            self.llm = OpenAIChat()
             
             # Define the tools list with our standalone function
             tools = [get_context_from_vectorstore]
@@ -46,9 +48,10 @@ class ChatService:
             # Create the agent after tools are defined
             logger.info("Initializing AGENT (with memory)...")
             memory = MemorySaver()
+            
+            # Create the ReAct agent with tools
             self.llm_graph = create_react_agent(
-                model=self.llm.llm,  # Use the .llm property of GeminiChat
-                response_format=LLMResponse,  # Use our updated Pydantic model
+                model=self.llm.llm,
                 checkpointer=memory,
                 tools=tools
             )
@@ -91,9 +94,6 @@ class ChatService:
             thread_id = f"patient_{patient_data.get('name', 'unknown').lower().replace(' ', '_')}_{int(time.time())}"
         
         try:
-            # Create config with thread_id for memory persistence
-            config_params = {"configurable": {"thread_id": thread_id}}
-            
             # Format allergies list or use default
             allergies = patient_data.get('allergies', [])
             if not allergies:
@@ -120,303 +120,243 @@ class ChatService:
             if isinstance(dietary_prefs, list):
                 dietary_prefs = ", ".join(dietary_prefs)
             
-            # Construct a prompt that will generate the desired report format
-            prompt = f"""
-            Generate a comprehensive medical report for this patient:
-            
-            Patient information:
-            - Name: {patient_data.get('name')}
-            - Age: {age}
-            - Gender: {gender}
-            - Weight: {weight}
-            - Height: {height}
-            - Condition: {patient_data.get('condition')}
-            - Allergies: {allergies_text}
-            - Current Medications: {medications}
-            - Symptoms: {symptoms}
-            - Dietary Preferences: {dietary_prefs}
-            
-            Please format the report in markdown exactly as follows:
-            
-            # Medical Report for {patient_data.get('name')}
-            
-            ## Patient Details
-            - Name: {patient_data.get('name')}
-            - Age: {age}
-            - Gender: {gender}
-            - Weight: {weight}
-            - Height: {height}
-            - Condition: {patient_data.get('condition')}
-            - Allergies: {allergies_text}
-            
-            ## Definition of {patient_data.get('condition')}
-            [Provide a clear, accurate definition of the patient's condition]
-            
-            ## Challenges Faced By Patient
-            [List 3-5 specific challenges this patient might face based on their condition]
-            
-            ## Recommended Meal Plan
-            [Create a 7-day meal plan that specifically addresses their medical condition]
-            
-            The meal plan must be in this exact markdown table format with breakfast, lunch, and dinner for all 7 days:
-            
-            | Day | Breakfast (kcal) | Lunch (kcal) | Dinner (kcal) |
-            |-----|------------------|--------------|---------------|
-            | Monday | [meal] (kcal) | [meal] (kcal) | [meal] (kcal) |
-            | Tuesday | [meal] (kcal) | [meal] (kcal) | [meal] (kcal) |
-            ...and so on for all 7 days
-            
-            ## Ingredients
-            Organize all needed ingredients into three categories:
-            
-            ### Produce
-            - [list all fresh produce]
-            
-            ### Groceries
-            - [list all grocery items]
-            
-            ### Dry Goods
-            - [list all dry goods, grains, etc.]
-            
-            Make sure all meals adhere strictly to any allergies and dietary preferences listed, and are specifically designed to help with the patient's condition of {patient_data.get('condition')}.
-            """
-            
-            # Create proper HumanMessage object
-            user_message = HumanMessage(content=prompt)
-            
-            # Create system message for clear direction
-            system_message = SystemMessage(content="""You are a specialized medical AI assistant that creates 
-            comprehensive medical reports. You must focus on providing evidence-based information and practical 
-            meal plans specifically tailored to the patient's medical condition. All recommendations must be 
-            medically appropriate for their condition. Include calorie counts for all meals. Format your response 
-            as a well-structured markdown document exactly following the template specified.""")
-            
-            # Add instructions to return structured JSON using the Pydantic model format
-            structured_output_instructions = SystemMessage(content="""After creating the markdown report, you must also 
-            convert your output to a structured JSON format that follows this schema:
-            {
-                "patient_name": "Patient's name",
-                "patient_age": "Patient's age",
-                "patient_gender": "Patient's gender",
-                "patient_weight": "Patient's weight",
-                "patient_height": "Patient's height",
-                "patient_condition": "Patient's condition",
-                "patient_allergies": "Patient's allergies",
-                "report_title": "Title of the medical report",
-                "condition_definition": "Definition of the condition",
-                "challenges": ["Challenge 1", "Challenge 2", "Challenge 3"],
-                "meal_plan": [
-                    {
-                        "day": "Monday",
-                        "breakfast": "Breakfast description with calories",
-                        "lunch": "Lunch description with calories",
-                        "dinner": "Dinner description with calories"
-                    },
-                    # Additional days...
-                ],
+            # Initialize the report structure
+            report = {
+                "patient_name": patient_data.get('name'),
+                "patient_age": age,
+                "patient_gender": gender,
+                "patient_weight": weight,
+                "patient_height": height,
+                "patient_condition": patient_data.get('condition'),
+                "patient_allergies": allergies_text,
+                "report_title": f"Medical Report for {patient_data.get('name')}",
+                "condition_definition": "",
+                "challenges": [],
+                "meal_plan": [],
                 "ingredients": {
-                    "produce": ["Item 1", "Item 2", ...],
-                    "groceries": ["Item 1", "Item 2", ...],
-                    "dry_goods": ["Item 1", "Item 2", ...]
+                    "produce": [],
+                    "groceries": [],
+                    "dry_goods": []
                 }
             }
-            """)
             
             # Log the process
             logger.info(f"Processing patient data for {patient_data.get('name')}")
             logger.info(f"Using thread_id: {thread_id}")
             
-            # Create inputs with all messages
-            inputs = {"messages": [system_message, structured_output_instructions, user_message]}
+            # Step 1: Generate condition definition and challenges
+            logger.info("Step 1: Generating condition definition and challenges")
+            definition_prompt = f"""
+            As a medical expert, provide the following information about {patient_data.get('condition')}:
             
-            # Process through graph
-            response = self.llm_graph.invoke(inputs, config=config_params)
+            1. A clear, concise definition of the condition (2-3 sentences)
+            2. List 3-5 specific challenges that {patient_data.get('name')} might face with this condition
             
-            # Check if the response directly contains a structured output
-            if isinstance(response, dict) and "output" in response:
-                # If the agent returned a structured output object already
-                structured_response = response["output"]
-                logger.info("Successfully generated structured JSON report")
-                return structured_response.model_dump()  # Convert Pydantic model to dict
+            Format your response as a JSON object with two fields:
+            - "definition": the definition of the condition
+            - "challenges": an array of challenges
             
-            # If we need to parse the markdown content ourselves
-            markdown_report = ""
-            if 'messages' in response:
-                for msg in response['messages']:
-                    if isinstance(msg, AIMessage):
-                        markdown_report = msg.content
-                        break
+            Example:
+            {{
+                "definition": "Type 2 Diabetes is a chronic condition that affects the way the body processes blood sugar (glucose).",
+                "challenges": [
+                    "Managing blood sugar levels throughout the day",
+                    "Maintaining a consistent exercise routine",
+                    "Following dietary restrictions"
+                ]
+            }}
             
-            # Parse the markdown report into our structured format
-            structured_report = self._parse_markdown_to_json(
-                markdown_report, 
-                patient_data.get('name'),
-                age,
-                gender,
-                weight,
-                height,
-                patient_data.get('condition'),
-                allergies_text
-            )
+            Return ONLY the JSON object, no other text.
+            """
+            
+            definition_response = self.llm.invoke([
+                SystemMessage(content="You are a medical expert specializing in chronic conditions. Provide accurate, evidence-based information in JSON format only."),
+                HumanMessage(content=definition_prompt)
+            ])
+            
+            # Extract definition and challenges
+            try:
+                # Try to parse JSON directly from the response
+                definition_content = definition_response.content
+                # Remove any markdown code block formatting if present
+                definition_content = re.sub(r'```json\s*|\s*```', '', definition_content)
+                definition_data = json.loads(definition_content)
+                
+                report["condition_definition"] = definition_data.get("definition", "")
+                report["challenges"] = definition_data.get("challenges", [])
+                
+                logger.info(f"Successfully generated definition and {len(report['challenges'])} challenges")
+            except Exception as e:
+                logger.error(f"Error parsing definition response: {str(e)}")
+                # Fallback to basic extraction
+                definition_content = definition_response.content
+                # Try to extract definition using regex
+                definition_match = re.search(r'"definition":\s*"([^"]+)"', definition_content)
+                if definition_match:
+                    report["condition_definition"] = definition_match.group(1)
+                
+                # Try to extract challenges using regex
+                challenges = re.findall(r'"([^"]+)"', re.search(r'"challenges":\s*\[(.*?)\]', definition_content, re.DOTALL).group(1) if re.search(r'"challenges":\s*\[(.*?)\]', definition_content, re.DOTALL) else "")
+                report["challenges"] = challenges
+            
+            # Step 2: Generate meal plan day by day
+            logger.info("Step 2: Generating meal plan")
+            days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            
+            # Create a comprehensive prompt for the entire meal plan
+            meal_plan_prompt = f"""
+            Create a 7-day meal plan for {patient_data.get('name')}, who has {patient_data.get('condition')}.
+            
+            Patient details:
+            - Allergies: {allergies_text}
+            - Dietary preferences: {dietary_prefs}
+            
+            For each day (Monday through Sunday), provide:
+            - Breakfast with calorie count
+            - Lunch with calorie count
+            - Dinner with calorie count
+            
+            Format your response as a JSON array of objects, where each object represents one day:
+            [
+                {{
+                    "day": "Monday",
+                    "breakfast": "Oatmeal with berries and nuts (350 kcal)",
+                    "lunch": "Grilled chicken salad with olive oil dressing (450 kcal)",
+                    "dinner": "Baked salmon with roasted vegetables (550 kcal)"
+                }},
+                ... and so on for all 7 days
+            ]
+            
+            Ensure all meals:
+            1. Are appropriate for someone with {patient_data.get('condition')}
+            2. Avoid any allergens: {allergies_text}
+            3. Respect dietary preferences: {dietary_prefs}
+            4. Include calorie counts for each meal
+            
+            Return ONLY the JSON array, no other text.
+            """
+            
+            meal_plan_response = self.llm.invoke([
+                SystemMessage(content="You are a nutritionist specializing in medical diets. Create appropriate meal plans in JSON format only."),
+                HumanMessage(content=meal_plan_prompt)
+            ])
+            
+            # Parse and add to meal plan
+            try:
+                # Try to parse JSON directly from the response
+                meal_plan_content = meal_plan_response.content
+                # Remove any markdown code block formatting if present
+                meal_plan_content = re.sub(r'```json\s*|\s*```', '', meal_plan_content)
+                meal_plan_data = json.loads(meal_plan_content)
+                
+                # Convert to our meal plan format
+                for day_data in meal_plan_data:
+                    meal_day = {
+                        "day": day_data.get("day", ""),
+                        "breakfast": day_data.get("breakfast", ""),
+                        "lunch": day_data.get("lunch", ""),
+                        "dinner": day_data.get("dinner", "")
+                    }
+                    report["meal_plan"].append(meal_day)
+                
+                logger.info(f"Successfully generated meal plan with {len(report['meal_plan'])} days")
+            except Exception as e:
+                logger.error(f"Error parsing meal plan response: {str(e)}")
+                # If JSON parsing fails, try to extract using regex
+                meal_plan_content = meal_plan_response.content
+                
+                # Try to extract each day's meals using regex
+                for day in days:
+                    day_pattern = rf'{{"day":\s*"{day}",\s*"breakfast":\s*"([^"]+)",\s*"lunch":\s*"([^"]+)",\s*"dinner":\s*"([^"]+)"'
+                    day_match = re.search(day_pattern, meal_plan_content)
+                    
+                    if day_match:
+                        meal_day = {
+                            "day": day,
+                            "breakfast": day_match.group(1),
+                            "lunch": day_match.group(2),
+                            "dinner": day_match.group(3)
+                        }
+                        report["meal_plan"].append(meal_day)
+            
+            # Step 3: Generate ingredients list
+            logger.info("Step 3: Generating ingredients list")
+            
+            # Create a prompt for the ingredients based on the meal plan
+            meal_plan_text = ""
+            for day in report["meal_plan"]:
+                meal_plan_text += f"{day['day']}:\n"
+                meal_plan_text += f"- Breakfast: {day['breakfast']}\n"
+                meal_plan_text += f"- Lunch: {day['lunch']}\n"
+                meal_plan_text += f"- Dinner: {day['dinner']}\n\n"
+            
+            ingredients_prompt = f"""
+            Based on the following 7-day meal plan for a patient with {patient_data.get('condition')}, 
+            create a comprehensive shopping list of all ingredients needed, categorized into:
+            - Produce (fresh fruits and vegetables)
+            - Groceries (packaged foods, dairy, meat, etc.)
+            - Dry Goods (grains, pasta, rice, beans, etc.)
+            
+            Meal Plan:
+            {meal_plan_text}
+            
+            Format your response as a JSON object with three arrays:
+            {{
+                "produce": ["Item 1", "Item 2", ...],
+                "groceries": ["Item 1", "Item 2", ...],
+                "dry_goods": ["Item 1", "Item 2", ...]
+            }}
+            
+            Combine similar ingredients and provide quantities where appropriate.
+            Return ONLY the JSON object, no other text.
+            """
+            
+            ingredients_response = self.llm.invoke([
+                SystemMessage(content="You are a nutritionist creating shopping lists. Organize ingredients by category in JSON format only."),
+                HumanMessage(content=ingredients_prompt)
+            ])
+            
+            # Parse and add ingredients
+            try:
+                # Try to parse JSON directly from the response
+                ingredients_content = ingredients_response.content
+                # Remove any markdown code block formatting if present
+                ingredients_content = re.sub(r'```json\s*|\s*```', '', ingredients_content)
+                ingredients_data = json.loads(ingredients_content)
+                
+                report["ingredients"]["produce"] = ingredients_data.get("produce", [])
+                report["ingredients"]["groceries"] = ingredients_data.get("groceries", [])
+                report["ingredients"]["dry_goods"] = ingredients_data.get("dry_goods", [])
+                
+                logger.info(f"Successfully generated ingredients list with {len(report['ingredients']['produce'])} produce items, "
+                           f"{len(report['ingredients']['groceries'])} grocery items, and {len(report['ingredients']['dry_goods'])} dry goods")
+            except Exception as e:
+                logger.error(f"Error parsing ingredients response: {str(e)}")
+                # If JSON parsing fails, try to extract using regex
+                ingredients_content = ingredients_response.content
+                
+                # Try to extract each category using regex
+                produce_match = re.search(r'"produce":\s*\[(.*?)\]', ingredients_content, re.DOTALL)
+                if produce_match:
+                    produce_items = re.findall(r'"([^"]+)"', produce_match.group(1))
+                    report["ingredients"]["produce"] = produce_items
+                
+                groceries_match = re.search(r'"groceries":\s*\[(.*?)\]', ingredients_content, re.DOTALL)
+                if groceries_match:
+                    groceries_items = re.findall(r'"([^"]+)"', groceries_match.group(1))
+                    report["ingredients"]["groceries"] = groceries_items
+                
+                dry_goods_match = re.search(r'"dry_goods":\s*\[(.*?)\]', ingredients_content, re.DOTALL)
+                if dry_goods_match:
+                    dry_goods_items = re.findall(r'"([^"]+)"', dry_goods_match.group(1))
+                    report["ingredients"]["dry_goods"] = dry_goods_items
             
             # Log completion
             logger.info(f"Successfully generated structured report for {patient_data.get('name')}")
             
-            return structured_report
+            return report
         except Exception as e:
             error_msg = f"Error processing patient data: {str(e)}"
             logger.error(error_msg)
             logger.exception(e)  # Log the full stack trace
             return {"error": error_msg}
-    
-    def _parse_markdown_to_json(self, markdown: str, name: str, age: str, gender: str, 
-                               weight: str, height: str, condition: str, allergies: str) -> Dict[str, Any]:
-        """Parse markdown report into structured JSON format
-        
-        Args:
-            markdown: The markdown report text
-            patient_info: Dictionary with patient information
-            
-        Returns:
-            Dict[str, Any]: Structured JSON report
-        """
-        # Initialize response structure
-        result = {
-            "patient_name": name,
-            "patient_age": age,
-            "patient_gender": gender,
-            "patient_weight": weight,
-            "patient_height": height,
-            "patient_condition": condition,
-            "patient_allergies": allergies,
-            "report_title": f"Medical Report for {name}",
-            "condition_definition": "",
-            "challenges": [],
-            "meal_plan": [],
-            "ingredients": {
-                "produce": [],
-                "groceries": [],
-                "dry_goods": []
-            }
-        }
-        
-        # Extract definition of condition
-        definition_pattern = r"## Definition of.*?\n(.*?)(?=##|$)"
-        definition_match = re.search(definition_pattern, markdown, re.DOTALL)
-        if definition_match:
-            result["condition_definition"] = definition_match.group(1).strip()
-        
-        # Extract challenges
-        challenges_pattern = r"## Challenges Faced By Patient.*?\n(.*?)(?=##|$)"
-        challenges_match = re.search(challenges_pattern, markdown, re.DOTALL)
-        if challenges_match:
-            challenges_text = challenges_match.group(1).strip()
-            # Extract individual challenges (assuming they're in a bullet point list)
-            challenges = re.findall(r"- (.*?)(?=$|\n)", challenges_text)
-            result["challenges"] = [challenge.strip() for challenge in challenges]
-        
-        # Extract meal plan
-        meal_plan_pattern = r"\| (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) \| (.*?) \| (.*?) \| (.*?) \|"
-        meal_plan_matches = re.findall(meal_plan_pattern, markdown)
-        
-        for match in meal_plan_matches:
-            day = match[0]
-            breakfast = match[1]
-            lunch = match[2]
-            dinner = match[3]
-            
-            result["meal_plan"].append({
-                "day": day,
-                "breakfast": breakfast,
-                "lunch": lunch,
-                "dinner": dinner
-            })
-        
-        # Extract ingredients
-        produce_pattern = r"### Produce\s*\n((?:- .*?\n)*)"
-        produce_match = re.search(produce_pattern, markdown, re.DOTALL)
-        if produce_match:
-            produce_text = produce_match.group(1).strip()
-            produce_items = re.findall(r"- (.*?)(?=$|\n)", produce_text)
-            result["ingredients"]["produce"] = [item.strip() for item in produce_items]
-        
-        groceries_pattern = r"### Groceries\s*\n((?:- .*?\n)*)"
-        groceries_match = re.search(groceries_pattern, markdown, re.DOTALL)
-        if groceries_match:
-            groceries_text = groceries_match.group(1).strip()
-            groceries_items = re.findall(r"- (.*?)(?=$|\n)", groceries_text)
-            result["ingredients"]["groceries"] = [item.strip() for item in groceries_items]
-        
-        dry_goods_pattern = r"### Dry Goods\s*\n((?:- .*?\n)*)"
-        dry_goods_match = re.search(dry_goods_pattern, markdown, re.DOTALL)
-        if dry_goods_match:
-            dry_goods_text = dry_goods_match.group(1).strip()
-            dry_goods_items = re.findall(r"- (.*?)(?=$|\n)", dry_goods_text)
-            result["ingredients"]["dry_goods"] = [item.strip() for item in dry_goods_items]
-        
-        return result
-
-# For testing the agent functionality
-#def main():
-#    """Test function to verify the LangGraph agent's functionality"""
-#    print("Initializing ChatService...")
-#    chat_service = ChatService()
-#    
-#    # First message
-#    thread_id = "test_thread_123"
-#    first_message = "What are the symptoms of diabetes?"
-#    print(f"\nUser: {first_message}")
-#    
-#    response = chat_service.process_chat(first_message, thread_id)
-#    print("\nAI Response:")
-#    
-#    # Handle response format correctly
-#    if "error" in response:
-#        print(f"Error: {response['error']}")
-#    else:
-#        # Print the structured response if available
-#        if 'structured_response' in response:
-#            result = response['structured_response']
-#            print(f"Structured Response:")
-#            if hasattr(result, 'meal_plan') and result.meal_plan:
-#                print(f"Meal Plan: {result.meal_plan}")
-#            if hasattr(result, 'ingredients') and result.ingredients:
-#                print(f"Ingredients: {result.ingredients}")
-#            if hasattr(result, 'patient_details') and result.patient_details:
-#                print(f"Patient Details: {result.patient_details}")
-#        
-#        # Print the raw message content from AI
-#        if 'messages' in response:
-#            for msg in response['messages']:
-#                from langchain_core.messages import AIMessage
-#                if isinstance(msg, AIMessage):
-#                    print(f"AI: {msg.content}")
-#    
-#    # Follow-up message to test memory
-#    follow_up = "What treatments are available for it?"
-#    print(f"\nUser: {follow_up}")
-#    
-#    response = chat_service.process_chat(follow_up, thread_id)
-#    print("\nAI Response (with memory context):")
-#    
-#    # Handle response the same way
-#    if "error" in response:
-#        print(f"Error: {response['error']}")
-#    else:
-#        # Print the structured response if available
-#        if 'structured_response' in response:
-#            result = response['structured_response']
-#            print(f"Structured Response:")
-#            if hasattr(result, 'meal_plan') and result.meal_plan:
-#                print(f"Meal Plan: {result.meal_plan}")
-#            if hasattr(result, 'ingredients') and result.ingredients:
-#                print(f"Ingredients: {result.ingredients}")
-#            if hasattr(result, 'patient_details') and result.patient_details:
-#                print(f"Patient Details: {result.patient_details}")
-#        
-#        # Print the raw message content from AI
-#        if 'messages' in response:
-#            for msg in response['messages']:
-#                from langchain_core.messages import AIMessage
-#                if isinstance(msg, AIMessage):
-#                    print(f"AI: {msg.content}")
