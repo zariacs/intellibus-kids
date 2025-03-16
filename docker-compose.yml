@@ -2,36 +2,29 @@ version: '3'
 
 services:
   frontend:
-    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
+    image: $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-frontend:latest
     ports:
       - "3000:3000"
+    environment:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     networks:
       - intellibus-network
-    environment:
-      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
 
   backend:
-    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
+    image: $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-backend:latest
     ports:
       - "5000:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     networks:
       - intellibus-network
-    environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
 
   ai:
-    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
+    image: $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-ai:latest
     ports:
       - "8000:8000"
     networks:
       - intellibus-network
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
 
 networks:
   intellibus-network:
