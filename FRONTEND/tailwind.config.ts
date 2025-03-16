@@ -55,6 +55,10 @@ const config: Config = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		backgroundImage: {
+  			'grid-pattern': 'url("/images/grid-pattern.svg")',
+  			'grid-pattern-light': 'url("/images/grid-pattern-light.svg")'
   		}
   	}
   },

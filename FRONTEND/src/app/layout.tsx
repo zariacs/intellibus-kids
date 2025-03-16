@@ -36,12 +36,20 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
         >
-          <header className="flex justify-end items-center p-4 gap-4 h-16">
+          <header className="flex justify-end items-center p-4 gap-4 h-16 bg-black/40 backdrop-blur-sm border-b border-blue-500/5 shadow-[0_4px_20px_rgba(59,130,246,0.05)] z-50 sticky top-0">
             <SignedOut>
-              <SignInButton />
-              <SignUpButton />
+              <SignInButton mode="modal">
+                <button className="px-4 py-2 rounded-md bg-gradient-to-r from-blue-500/80 to-indigo-600/80 hover:from-blue-500 hover:to-indigo-600 text-white transition-all">
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="px-4 py-2 rounded-md bg-black/30 border border-blue-500/20 hover:bg-black/50 hover:border-blue-500/30 text-white transition-all">
+                  Register
+                </button>
+              </SignUpButton>
             </SignedOut>
             <SignedIn>
               <UserButton />
