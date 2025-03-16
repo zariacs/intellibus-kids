@@ -87,7 +87,7 @@ jobs:
           set +o allexport
           
           echo "AWS_REGION=${AWS_REGION}"
-          echo "SUPABASE url = ${SUPABASE_URL}""
+          echo "SUPABASE url = ${SUPABASE_URL}"
       
           # Configure AWS CLI to use passed secrets
           aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
