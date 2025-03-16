@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "intellibus-kids"
 version = "0.1.0"
-description = "AI healthcare assistant for children"
+description = "AI healthcare assistant for patients with stomach issuse"
 authors = [
-    {name = "IntellibusDev"}
+    {name = "Intellibus_Devs"}
 ]
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -17,13 +17,17 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "langchain>=0.1.0",
+    "langchain",
     "langchain-google-genai",
-    "langgraph>=0.0.20",
-    "pydantic>=2.0.0",
+    "langgraph",
+    "pydantic",
     "python-dotenv",
     "pinecone-client",
     "langfuse",
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "starlette",
 ]
 
 [project.optional-dependencies]
