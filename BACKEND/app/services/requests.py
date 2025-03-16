@@ -3,22 +3,20 @@ from fastapi import HTTPException
 from ..models.requests import NutritionRequest, NutritionRequestCreate
 from ..db import supabase
 from typing import Dict, Any, List
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 class NutritionRequestService:
     def __init__(self):
         self.valid_statuses = ["pending", "in_review", "approved", "rejected"]
         self.table = "nutrition_requests"
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    async def get_user_data(self, user_id: int) -> Dict:
-        """Fetch user data from the users table with retry logic"""
+    async def get_user_data(self, user_id: str) -> Dict:
+        """Fetch user data from the users table"""
         try:
             print(f"Attempting to fetch user data for ID: {user_id}")
             
             result = supabase.table("cust_users")\
                 .select("*")\
-                .eq("id", user_id)\
+                .eq("user_id", user_id)\
                 .execute()
             
             if not result.data:
@@ -30,9 +28,7 @@ class NutritionRequestService:
             return result.data[0]
             
         except Exception as e:
-            print(f"Error in get_user_data: {type(e).__name__}, {str(e)}")
-            if "Connection reset by peer" in str(e):
-                raise ConnectionError(f"Database connection error: {str(e)}")
+            print(f"Error in get_user_data: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to fetch user data: {str(e)}"
@@ -60,7 +56,6 @@ class NutritionRequestService:
                 detail=f"Failed to format request data: {str(e)}"
             )
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def create_request_with_suggestion(self, request_data: dict) -> NutritionRequest:
         """Create a request with a pre-fetched Nevin suggestion"""
         try:
@@ -137,18 +132,40 @@ class NutritionRequestService:
                 detail=f"Internal server error while creating request: {str(e)}"
             )
 
-    def update_request_status(
+    async def get_request_by_id(self, request_id: int) -> NutritionRequest:
+        """Get a specific request by ID"""
+        try:
+            result = supabase.table(self.table)\
+                .select("*")\
+                .eq("id", request_id)\
+                .execute()
+                
+            if not result.data:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Request with ID {request_id} not found"
+                )
+                
+            return NutritionRequest(**result.data[0])
+            
+        except Exception as e:
+            print(f"Error fetching request: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch request: {str(e)}"
+            )
+
+    async def update_request_status(
         self, 
         request_id: int, 
         status: str,
-        nevin_suggest: str | None = None,
-        approved_reco: str | None = None
+        approved_recommendation: str = None
     ) -> NutritionRequest:
+        """Update the status and optionally the recommendations of a specific request"""
         try:
-            # Validate status
             if status not in self.valid_statuses:
                 raise HTTPException(
-                    status_code=400, 
+                    status_code=400,
                     detail=f"Invalid status. Must be one of: {', '.join(self.valid_statuses)}"
                 )
             
@@ -158,11 +175,10 @@ class NutritionRequestService:
                 "updated_at": datetime.utcnow().isoformat()
             }
             
-            # Add optional fields if provided
-            if nevin_suggest is not None:
-                update_data["nevin_suggest"] = nevin_suggest
-            if approved_reco is not None:
-                update_data["approved_reco"] = approved_reco
+            # Only set these fields if we're approving a request
+            if status == "approved" and approved_recommendation:
+                update_data["approved_reccomendation"] = approved_recommendation
+                update_data["nevin_suggest"] = ""  # Clear the nevin_suggest field
                 
             result = supabase.table(self.table)\
                 .update(update_data)\
@@ -171,7 +187,7 @@ class NutritionRequestService:
                 
             if not result.data:
                 raise HTTPException(
-                    status_code=404, 
+                    status_code=404,
                     detail=f"Request with ID {request_id} not found"
                 )
                 
@@ -180,10 +196,10 @@ class NutritionRequestService:
         except HTTPException as e:
             raise e
         except Exception as e:
-            print(f'Error updating request status: {str(e)}')
+            print(f"Error updating request status: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Internal server error while updating request: {str(e)}"
+                detail=f"Failed to update request status: {str(e)}"
             )
 
     def get_requests_by_nutricode(self, nutri_code: str) -> List[NutritionRequest]:
@@ -204,4 +220,22 @@ class NutritionRequestService:
             raise HTTPException(
                 status_code=500,
                 detail=f"Internal server error while fetching requests: {str(e)}"
+            )
+
+    async def get_requests_by_patient(self, patient_id: str) -> List[NutritionRequest]:
+        """Get all requests for a specific patient"""
+        try:
+            result = supabase.table(self.table)\
+                .select("*")\
+                .eq("patient_id", patient_id)\
+                .order("created_at", desc=True)\
+                .execute()
+                
+            return [NutritionRequest(**request) for request in result.data]
+            
+        except Exception as e:
+            print(f"Error fetching patient requests: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch patient requests: {str(e)}"
             )
