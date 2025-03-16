@@ -11,11 +11,31 @@ request_service = NutritionRequestService()
 @router.post("/create", response_model=NutritionRequest)
 async def create_request(request: NutritionRequestCreate):
     try:
-        return await request_service.create_request(request)
-    except HTTPException as e:
-        raise e
+        # First get user data
+        user_data = await request_service.get_user_data(request.patient_id)
+        
+        # Format data for Nevin
+        nevin_request = await request_service.format_nevin_request(user_data, request)
+        
+        # Use the Nevin router endpoint instead of direct API call
+        nevin_response = await get_nevin_suggestion(nevin_request)
+        print(f"Nevin said {nevin_response}")
+        nevin_suggest = nevin_response.get("suggestion", "No suggestion provided")
+        
+        # Create request with the Nevin suggestion
+        data = request.model_dump()
+        data["nevin_suggest"] = nevin_suggest
+        
+        # Call create_request with the updated data
+        result = await request_service.create_request_with_suggestion(data)
+        return result
+            
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create request: {str(e)}")
+        print(f"Error in create_request: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create request: {str(e)}"
+        )
 
 @router.patch("/{request_id}/status", response_model=NutritionRequest)
 async def update_request_status(
@@ -35,7 +55,6 @@ async def update_request_status(
 async def get_nevin_suggestion(request_data: dict):
     """
     Direct endpoint to test Nevin's API suggestions.
-    Expects a JSON body with request details.
     """
     try:
         if not settings.NEVIN:
@@ -48,7 +67,7 @@ async def get_nevin_suggestion(request_data: dict):
             response = await client.post(
                 settings.NEVIN,
                 json=request_data,
-                timeout=30.0
+                timeout=150
             )
             
             if response.status_code != 200:
