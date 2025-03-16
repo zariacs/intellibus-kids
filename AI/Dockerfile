@@ -1,6 +1,9 @@
 # Use the official Python image (slim version to keep it lightweight)
 FROM python:3.12-alpine
 
+# Copy only requirements first for better caching
+COPY requirements.txt /app/
+
 # Set the working directory inside the container
 WORKDIR /app
 
