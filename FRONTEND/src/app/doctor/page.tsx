@@ -33,11 +33,93 @@ type PendingRequest = {
   patient: Patient;
 };
 
+// Dummy data for testing until backend is connected
+const DUMMY_REQUESTS: PendingRequest[] = [
+  {
+    id: 1,
+    created_at: "2025-03-10T10:23:45Z",
+    conditions: ["Type 2 Diabetes", "Hypertension", "High Cholesterol"],
+    status: "pending",
+    patient_id: "user_123abc",
+    dietary_preference: "Low-carb, Mediterranean-inspired",
+    patient: {
+      id: "user_123abc",
+      name: "Jane Doe",
+      age: 42,
+      gender: "Female",
+      email: "jane.doe@example.com"
+    }
+  },
+  {
+    id: 2,
+    created_at: "2025-03-12T14:17:32Z",
+    conditions: ["Gluten Intolerance", "IBS", "Vitamin D Deficiency"],
+    status: "pending",
+    patient_id: "user_456def",
+    dietary_preference: "Gluten-free, High fiber",
+    patient: {
+      id: "user_456def",
+      name: "Michael Johnson",
+      age: 35,
+      gender: "Male",
+      email: "michael.j@example.com"
+    }
+  },
+  {
+    id: 3,
+    created_at: "2025-03-14T09:42:18Z",
+    conditions: ["GERD", "Lactose Intolerance"],
+    status: "pending",
+    patient_id: "user_789ghi",
+    dietary_preference: "Dairy-free, Low acid",
+    patient: {
+      id: "user_789ghi",
+      name: "Sarah Williams",
+      age: 29,
+      gender: "Female",
+      email: "sarah.w@example.com"
+    }
+  },
+  {
+    id: 4,
+    created_at: "2025-03-15T16:05:51Z",
+    conditions: ["Pre-diabetes", "Obesity", "Sleep Apnea"],
+    status: "pending",
+    patient_id: "user_101jkl",
+    dietary_preference: "Calorie restricted, High protein",
+    patient: {
+      id: "user_101jkl",
+      name: "Robert Chen",
+      age: 47,
+      gender: "Male",
+      email: "robert.c@example.com"
+    }
+  },
+  {
+    id: 5,
+    created_at: "2025-03-15T18:33:27Z",
+    conditions: ["Anemia", "Hypothyroidism"],
+    status: "pending",
+    patient_id: "user_202mno",
+    dietary_preference: "Iron-rich, Balanced macros",
+    patient: {
+      id: "user_202mno",
+      name: "Emily Rodriguez",
+      age: 31,
+      gender: "Female",
+      email: "emily.r@example.com"
+    }
+  }
+];
+
 export default function DoctorDashboardPage() {
   const { user, isLoaded } = useUser();
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Flag to use dummy data (set to false when backend is ready)
+  const useDummyData = true;
 
   useEffect(() => {
     async function fetchPendingRequests() {
@@ -45,6 +127,19 @@ export default function DoctorDashboardPage() {
 
       try {
         setLoading(true);
+        
+        if (useDummyData) {
+          // Use dummy data for testing
+          // Simulate a network delay
+          setTimeout(() => {
+            setPendingRequests(DUMMY_REQUESTS);
+            setLoading(false);
+          }, 800);
+          
+          return;
+        }
+        
+        // Real API call for when backend is ready
         const response = await fetch('/api/doctor/pending-requests');
         
         if (!response.ok) {
@@ -58,12 +153,23 @@ export default function DoctorDashboardPage() {
         console.error("Error fetching pending requests:", err);
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
-        setLoading(false);
+        if (!useDummyData) {
+          setLoading(false);
+        }
       }
     }
 
     fetchPendingRequests();
-  }, [user, isLoaded]);
+  }, [user, isLoaded, useDummyData]);
+
+  const handleReviewRequest = (requestId: number) => {
+    // For demo purposes, always route to report/3
+    // In production, this would use the actual requestId
+    window.location.href = '/report/3';
+    
+    // When backend is ready, uncomment this:
+    // window.location.href = `/report/${requestId}`;
+  };
 
   if (!isLoaded || loading) {
     return (
@@ -158,7 +264,7 @@ export default function DoctorDashboardPage() {
                 <div className="w-full">
                   <Button 
                     className="w-full" 
-                    onClick={() => window.location.href = `/doctor/request/${request.id}`}
+                    onClick={() => handleReviewRequest(request.id)}
                   >
                     Review Request
                   </Button>
