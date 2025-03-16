@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } } // ✅ Corrected typing here
+  context: { params: { id: string } } 
 ) {
   try {
     // Verify the user is authorized as a doctor
