@@ -23,12 +23,16 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Ensure AWS_REGION is set
+      run: echo "AWS_REGION=us-east-1" >> $GITHUB_ENV
+
     - name: Login to Amazon ECR
-      run: |
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       env:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         AWS_REGION: us-east-1
+      run: |
+        export AWS_REGION=us-east-1
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
     - name: Ensure AWS ECR Repository Exists
       env:
@@ -43,11 +47,18 @@ jobs:
         aws ecr create-repository --repository-name my-ai --region $AWS_REGION
 
     - name: Build, Tag, and Push Docker Images to AWS ECR
+      if: false
       env:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         AWS_REGION: us-east-1
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       run: |
+        # Ensure the build directory exists
+        mkdir -p ./FRONTEND/.env.production
+        
+        # Pass environment variables properly for Next.js build
+        echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" > ./FRONTEND/.env.production
+
         # Build and push frontend
         docker build --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY -t my-frontend:latest ./FRONTEND
         docker tag my-frontend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
@@ -82,43 +93,43 @@ jobs:
         # Save SSH key
         echo "$SSH_PRIVATE_KEY" > deploy_key.pem
         chmod 600 deploy_key.pem
-      
+
         # SSH into EC2 and deploy services
         ssh -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-        # Install Docker & Docker-Compose if missing
-        if ! command -v docker &> /dev/null; then
-        echo "Installing Docker..."
-        sudo yum update -y
-        sudo yum install -y docker
-        sudo systemctl start docker
-        sudo systemctl enable docker
-        sudo usermod -aG docker $USER
-        fi
+          # Install Docker & Docker-Compose if missing
+          if ! command -v docker &> /dev/null; then
+            echo "Installing Docker..."
+            sudo yum update -y
+            sudo yum install -y docker
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -aG docker $USER
+          fi
+
           if ! command -v docker-compose &> /dev/null; then
             echo "Installing Docker Compose..."
-            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
             sudo chmod +x /usr/local/bin/docker-compose
-        fi
-      
-        # Configure AWS CLI
-        mkdir -p ~/.aws
-        echo "[default]" > ~/.aws/credentials
-        echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
-        echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
-        echo "[default]" > ~/.aws/config
-        echo "region=$AWS_REGION" >> ~/.aws/config
-      
-        # Authenticate with AWS ECR
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-      
-        # Pull latest images
-        docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
-        docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
-        docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
-      
-        # Start services with Docker Compose
-        docker-compose down
-        docker-compose up -d
+            sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+          fi
+
+          # Ensure AWS credentials are correctly set
+          mkdir -p ~/.aws
+          echo "[default]" > ~/.aws/credentials
+          echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
+          echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+          echo "[default]" > ~/.aws/config
+          echo "region=$AWS_REGION" >> ~/.aws/config
+
+          # Authenticate with AWS ECR
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+          # Pull latest images
+          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
+          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
+          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
+
+          # Start services with Docker Compose
+          docker-compose down
+          docker-compose up -d
         EOF
-      
-    
