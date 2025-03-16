@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "langchain",
     "langchain-google-genai",
+    "langchain-openai",
     "langgraph",
     "pydantic",
     "python-dotenv",

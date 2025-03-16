@@ -24,27 +24,37 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Login to Amazon ECR
-      run: |
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       env:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        AWS_REGION: us-east-1
+      run: |
+        export AWS_REGION="us-east-1"
+        aws ecr get-login-password --region us-east-1 | \
+        docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
+
+    - name: Ensure AWS ECR Repositories Exist
+      env:
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      run: |
+        export AWS_REGION="us-east-1"
+        for repo in my-frontend my-backend my-ai; do
+          aws ecr describe-repositories --repository-names $repo --region us-east-1 || \
+          aws ecr create-repository --repository-name $repo --region us-east-1
+        done
 
     - name: Build, Tag, and Push Docker Images to AWS ECR
       env:
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        AWS_REGION: us-east-1
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: us-east-1
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       run: |
         # Build and push frontend
-        docker build -t my-frontend:latest ./FRONTEND
+        docker build --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY -t my-frontend:latest ./FRONTEND
         docker tag my-frontend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
         docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
-
         # Build and push backend
         docker build -t my-backend:latest ./BACKEND
         docker tag my-backend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
         docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
-
         # Build and push AI service
         docker build -t my-ai:latest ./AI
         docker tag my-ai:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
@@ -52,39 +62,83 @@ jobs:
 
     - name: Deploy to EC2
       env:
-        EC2_HOST: ${{ secrets.EC2_HOST }}
-        EC2_USER: ${{ secrets.EC2_USER }}
-        SSH_PRIVATE_KEY: ${{ secrets.OPENSSH_PRIVATE_KEY }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        AWS_REGION: us-east-1
-        CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-        CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        TF_S3_BUCKET: ${{ secrets.TF_S3_BUCKET }}
-        LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
-        LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
-        SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          EC2_HOST: 3.219.34.114
+          EC2_USER: ec2-user
+          SSH_PRIVATE_KEY: ${{ secrets.OPENSSH_PRIVATE_KEY }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEVIN: ${{ secrets.NEVIN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API: ${{ secrets.SUPABASE_API}}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}}
+      
+
       run: |
-        # Save SSH key
-        echo "$SSH_PRIVATE_KEY" > deploy_key.pem
-        chmod 600 deploy_key.pem
+          echo "$SSH_PRIVATE_KEY" > deploy_key.pem
+          chmod 600 deploy_key.pem
+      
 
-        # SSH into EC2 and deploy services
-        ssh -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-          # Configure AWS CLI
-          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-          aws configure set region $AWS_REGION
+          cat <<EOF > .env
+            AWS_REGION=us-east-1
+            AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+            NEVIN=${{ secrets.NEVIN }}
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_API=${{ secrets.SUPABASE_API }}
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          EOF
 
-          # Authenticate with AWS ECR
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+          # Ensure docker-compose.yml is copied
+          scp -i deploy_key.pem -o StrictHostKeyChecking=no .env docker-compose.yml ec2-user@$EC2_HOST:/home/ec2-user/
           
-          # Pull latest images
-          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-frontend:latest
-          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-backend:latest
-          docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/my-ai:latest
-
-          # Start services with Docker Compose
-          docker-compose down
-          docker-compose up -d
-        EOF
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST \
+          "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }} AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} AWS_REGION=us-east-1 bash -s" << 'EOF'
+      
+          set -o allexport
+          source /home/ec2-user/.env
+          set +o allexport
+          
+          echo "AWS_REGION=${AWS_REGION}"
+          echo "SUPABASE url = ${SUPABASE_URL}"
+      
+          # Configure AWS CLI to use passed secrets
+          aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+          aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+          aws configure set region ${AWS_REGION}
+      
+          # ✅ Install Docker & Docker Compose
+          if ! command -v docker &> /dev/null; then
+              sudo yum update -y
+              sudo yum install -y docker
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker $USER
+          fi
+      
+          if ! command -v docker-compose &> /dev/null; then
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+          fi
+      
+          # ✅ AWS ECR Authentication
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
+      
+          # ✅ Pull latest images
+          docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/my-frontend:latest
+          docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/my-backend:latest
+          docker pull ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/my-ai:latest
+      
+          # ✅ Deploy with Docker Compose
+          docker-compose -f /home/ec2-user/docker-compose.yml down --remove-orphans
+          docker-compose -f /home/ec2-user/docker-compose.yml up -d --force-recreate
+          
+          EOF
+      

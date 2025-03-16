@@ -42,12 +42,13 @@ class Config:
             
         # API Keys
         self._gemini_api_key = os.getenv("GEMINI_API_KEY")
+        self._openai_api_key = os.getenv("OPENAI_API_KEY")
         self._pinecone_api_key = os.getenv("PINECONE_API_KEY")
         self._langfuse_public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
         self._langfuse_secret_key = os.getenv("LANGFUSE_SECRET_KEY")
         
         # LLM Configuration
-        self._model_name = "gemini-1.5-pro"
+        self._model_name = os.getenv("MODEL_NAME")
         self._temperature = 0.5
         self._max_tokens = None
         self._timeout = None
@@ -92,6 +93,16 @@ class Config:
     def google_api_key(self) -> Optional[str]:
         """Get Google API key."""
         return self._gemini_api_key
+    
+    @property
+    def openai_api_key(self) -> Optional[str]:
+        """Get OpenAI API key."""
+        return self._openai_api_key
+    
+    @openai_api_key.setter
+    def openai_api_key(self, value: str) -> None:
+        """Set OpenAI API key."""
+        self._openai_api_key = value
     
     @property
     def pinecone_api_key(self) -> Optional[str]:
@@ -277,6 +288,10 @@ class Config:
             
         if not self._pinecone_environment:
             errors.append("PINECONE_ENVIRONMENT is not set")
+        
+        # Check if model name is set
+        if not self._model_name:
+            errors.append("MODEL_NAME is not set, using default 'gemini-1.5-flash'")
             
         return errors
 

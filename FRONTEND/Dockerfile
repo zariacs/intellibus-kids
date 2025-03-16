@@ -13,6 +13,10 @@ RUN npm install
 # Copy the rest of the project files
 COPY . .
 
+# ✅ Set environment variables at build time
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+
 # Build the Next.js app
 RUN npm run build
 
