@@ -219,7 +219,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
       );
     };
 
-    
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_KEY);    
     
     return (
       <div className="space-y-3">
