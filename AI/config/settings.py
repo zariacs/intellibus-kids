@@ -2,6 +2,7 @@ import os
 from typing import Dict, List, Optional, Union, Any
 from dotenv import load_dotenv
 from pathlib import Path
+from langfuse.callback import CallbackHandler
 
 
 class Config:
@@ -72,6 +73,17 @@ class Config:
         # API Configuration
         self._cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
         self._api_rate_limit = int(os.getenv("API_RATE_LIMIT", "100"))  # Requests per minute
+        
+        # Initialize Langfuse handler if keys are available
+        self._langfuse_handler = None
+        if self._langfuse_public_key and self._langfuse_secret_key:
+            try:
+                self._langfuse_handler = CallbackHandler(
+                    public_key=self._langfuse_public_key,
+                    secret_key=self._langfuse_secret_key
+                )
+            except Exception as e:
+                print(f"Failed to initialize Langfuse handler: {str(e)}")
         
         self._initialized = True
     
@@ -210,6 +222,17 @@ class Config:
         """Get API rate limit."""
         return self._api_rate_limit
     
+    # Add Langfuse handler property
+    @property
+    def langfuse_handler(self):
+        """Get Langfuse callback handler."""
+        return self._langfuse_handler
+    
+    def flush_langfuse(self):
+        """Flush Langfuse events."""
+        if self._langfuse_handler:
+            self._langfuse_handler.flush()
+    
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert configuration to dictionary.
@@ -219,7 +242,7 @@ class Config:
             Dict containing all configuration values
         """
         return {
-            "google_api_key": self._google_api_key,
+            "google_api_key": self._gemini_api_key,
             "pinecone_api_key": self._pinecone_api_key,
             "langfuse_public_key": self._langfuse_public_key,
             "langfuse_secret_key": self._langfuse_secret_key,
@@ -246,8 +269,8 @@ class Config:
         errors = []
         
         # Check required API keys
-        if not self._google_api_key:
-            errors.append("GOOGLE_API_KEY is not set")
+        if not self._gemini_api_key:
+            errors.append("GEMINI_API_KEY is not set")
         
         if not self._pinecone_api_key:
             errors.append("PINECONE_API_KEY is not set")
