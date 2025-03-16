@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  frontend:
+    image: $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-frontend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+
+    networks:
+      - intellibus-network
+
+  backend:
+    image: $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-backend:latest
+    ports:
+      - "5000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEVIN=${NEVIN}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_API=${SUPABASE_API}
+    networks:
+      - intellibus-network
+
+  ai:
+    image: $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-ai:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY={GEMINI_API_KEY}
+    networks:
+      - intellibus-network
+
+networks:
+  intellibus-network:
