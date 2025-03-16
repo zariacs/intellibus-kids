@@ -1,0 +1,68 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Overview of the nutriLab project vision, target audience, and key features
+---
+
+# nutriLab Project Vision
+
+Standards and guidelines for understanding the project vision and scope of nutriLab.
+
+<rule>
+name: nutrilab_project_vision
+description: High-level overview of the nutriLab project vision and key features
+
+actions:
+  - type: suggest
+    message: |
+      ## nutriLab Project Vision and Scope
+
+      ### Project Purpose
+      nutriLab addresses the inefficient process of obtaining personalized meal plans for conditions like IBS by:
+      - Reducing wait times (currently up to 6 months) for personalized dietary advice
+      - Leveraging AI to generate preliminary meal plans with human in the loop capabilities
+      - Involving healthcare professionals for verification
+      - Making dietary management more accessible and efficient
+
+      ### Target Audience
+      - **Patients**: Individuals with IBS or similar conditions needing dietary management
+      - **Doctors**: Gastroenterologists, dietitians, and other healthcare professionals
+
+      ### Key Components
+      1. **Patient Portal**:
+         - Secure registration with medical history input
+         - Symptom and food intake tracking
+         - Access to approved meal plans
+         - Profile update capabilities
+
+      2. **Doctor Portal**:
+         - Review and approve AI-generated plans
+         - Verify patient data
+         - Provide feedback to improve AI recommendations
+         - Access analytics and reports
+
+      3. **AI Agent (Nevin)**:
+         - Processes patient data to create personalized meal plans
+         - Incorporates doctor feedback to refine algorithms
+         - Integrates real-time dietary research updates
+
+      ### Technical Requirements
+      - HIPAA-compliant data security
+      - Scalable performance for growing user base
+      - User-friendly interface
+      - Real-time data processing for AI model updates
+
+      ### Success Metrics
+      - Reduced wait times for meal plans
+      - Accuracy of meal plan recommendations
+      - User satisfaction and engagement
+      - Number of active users
+
+
+metadata:
+  priority: very high
+  version: 1.0
+</rule>

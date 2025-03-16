@@ -1,0 +1,83 @@
+---
+description: Standards for organizing project files according to the defined file structure
+globs: *.ts, *.js, *.py, *.jsx, *.tsx
+alwaysApply: false
+---
+
+# Project File Structure
+
+Rules for organizing files in the project according to the established structure.
+
+<rule>
+name: project_file_structure
+description: Standards for placing files in the correct directories according to their purpose
+filters:
+  # Match any source code files
+  - type: file_extension
+    pattern: "\\.(ts|js|py|jsx|tsx)$"
+  # Match file creation events
+  - type: event
+    pattern: "file_create"
+
+actions:
+  - type: suggest
+    message: |
+      When creating new files, follow the project structure:
+
+      1. API endpoints go in the api/ directory:
+         ```
+         api/
+         ├── routers/  # API route handlers
+         └── ... 
+         ```
+
+      2. Core functionality and configurations go in the core/ directory:
+         ```
+         core/
+         ├── config.ts
+         ├── constants.ts
+         └── ...
+         ```
+
+      3. Data models and schemas go in the models/ directory:
+         ```
+         models/
+         ├── user.model.ts
+         ├── product.model.ts
+         └── ...
+         ```
+
+      4. Business logic services go in the service/ directory:
+         ```
+         service/
+         ├── auth.service.ts
+         ├── user.service.ts
+         └── ...
+         ```
+
+      5. Documentation files go in the docs/ directory:
+         ```
+         docs/
+         ├── api.md
+         ├── setup.md
+         └── ...
+         ```
+
+examples:
+  - input: |
+      # Bad: Files in incorrect locations
+      auth.service.ts in api/
+      user.model.ts in service/
+      
+      # Good: Files in correct locations
+      api/routers/auth.router.ts
+      models/user.model.ts
+      service/auth.service.ts
+      core/config.ts
+      docs/api.md
+    output: "Correctly organized project files"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

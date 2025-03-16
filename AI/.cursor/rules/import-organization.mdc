@@ -1,0 +1,54 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Import Organization
+
+## Description
+Organize imports into three distinct sections in the following order:
+1. Built-in imports (Python standard library)
+2. Third-party imports (installed packages)
+3. Local imports (from your own codebase)
+
+Each section should be separated by a blank line.
+
+## Examples
+
+### Incorrect
+```python
+from AI.config.settings import config
+import os
+from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import Dict, List, Optional, Union, Any
+from dotenv import load_dotenv
+from pathlib import Path
+```
+
+### Correct
+```python
+# Built-in imports
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Union, Any
+
+# Third-party imports
+from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+# Local imports
+from AI.config.settings import config
+```
+
+## Why
+- Improves code readability and organization
+- Makes dependencies clear at a glance
+- Follows Python PEP 8 style guide recommendations
+- Helps prevent circular import issues
+- Makes it easier to identify potential import conflicts
+
+## How To Fix
+1. Group all built-in Python standard library imports at the top
+2. Add a blank line, then add all third-party package imports
+3. Add another blank line, then add all local project imports
+4. Within each group, consider alphabetical ordering for consistency

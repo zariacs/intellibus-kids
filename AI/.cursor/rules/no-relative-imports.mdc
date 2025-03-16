@@ -1,0 +1,79 @@
+---
+description: Prevent the use of relative imports in the codebase
+globs: 
+alwaysApply: false
+---
+---
+description: Prevent the use of relative imports in the codebase
+globs: ["*.py"]
+alwaysApply: true
+---
+
+# No Relative Imports
+
+Enforce the use of absolute imports only and forbid any relative imports throughout the codebase. For files in the same directory, use direct imports without dot notation.
+
+<rule>
+name: no_relative_imports
+description: Forbids the use of relative imports in all Python files
+filters:
+  # Match Python files
+  - type: file_extension
+    pattern: "\\.py$"
+
+actions:
+  - type: reject
+    conditions:
+      # Match relative import patterns like 'from . import' or 'from .. import'
+      - pattern: "from\\s+\\.{1,}\\s*.*\\s+import"
+        message: "Relative imports are not allowed. Use direct imports for same-directory files or absolute imports otherwise."
+      # Match relative import patterns like 'from .module import'
+      - pattern: "from\\s+\\.\\w+.*\\s+import"
+        message: "Relative imports are not allowed. Use direct imports for same-directory files or absolute imports otherwise."
+
+  - type: suggest
+    message: |
+      ❌ Relative imports are not allowed in this codebase.
+      
+      Instead of:
+      ```python
+      # Don't use relative imports, even for files in the same directory
+      from . import settings
+      from .settings import config
+      from .. import module
+      ```
+      
+      Use direct imports for files in the same directory:
+      ```python
+      # For files in the same directory
+      import settings
+      from settings import config
+      ```
+      
+      Or use absolute imports for files in other directories:
+      ```python
+      # For files in other directories
+      from package.module import function
+      import package.submodule
+      ```
+
+examples:
+  - input: |
+      # Bad: Relative imports
+      from . import utils
+      from .. import config
+      from .settings import config
+      
+      # Good: Direct imports for same-directory files
+      import utils
+      from settings import config
+      
+      # Good: Absolute imports for files in other directories
+      from mypackage.utils import helper
+      import mypackage.config
+    output: "Code with proper direct and absolute imports only"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

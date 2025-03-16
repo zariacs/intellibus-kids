@@ -41,3 +41,9 @@ terraform.tfvars
 *.swo
 *.DS_Store
 Thumbs.db
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
