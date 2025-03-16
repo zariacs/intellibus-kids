@@ -1,38 +1,52 @@
-// import React from 'react';
-// import { useRouter } from 'next/navigation'
-// import { useUser } from '@clerk/clerk-react';
-"use client";
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation'
-// import { useUser } from '@clerk/clerk-react';
+// pages/index.tsx (for Pages Router)
+// or app/page.tsx (for App Router with client component)
+"use client"; // Remove this line if using Pages Router
 
-export default function WelcomePage({
-    children,
-  }: Readonly<{
-    children: React.ReactNode
-  }>) {
-    // const { user } = useUser();
-    const router = useRouter()
-    const status: boolean = true;
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/router"; // use "next/navigation" for App Router
+import { useEffect } from "react";
 
-    useEffect(() => {
-        if (status) {
-            router.push('/welcome/doctor');
-        }
-        // if (user) {
-        //     const role = user.publicMetadata.role;
-        //     if (role === 'doctor') {
-        //         router.push('/doctor');
-        //     } else if (role === 'patient') {
-        //         router.push('/patient');
-        //     }
-        // }
-    }, []);
+export default function HomePage() {
+  const { user, isLoaded, isSignedIn } = useUser();
+  const router = useRouter();
 
+  useEffect(() => {
+    // Only proceed if Clerk has loaded and the user is signed in
+    if (!isLoaded) return;
+
+    if (isSignedIn && user) {
+      // Get user role from publicMetadata
+      const userRole = user.publicMetadata.role as string | undefined;
+      
+      // Redirect based on role
+      if (userRole === "doctor") {
+        router.push("/doctor");
+      } else if (userRole === "patient") {
+        router.push("/patient");
+      } else {
+        // If no role is set, redirect to role selection page
+        router.push("/select-role");
+      }
+    }
+    // No redirection if user is not signed in - show the homepage
+  }, [isLoaded, isSignedIn, user, router]);
+
+  // Loading state while Clerk loads
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+
+  // Show sign-in options if user is not signed in
+  if (!isSignedIn) {
     return (
-        <div>
-            <h1>Welcome</h1>
-            {children}
-        </div>
+      <div className="flex items-center justify-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <h1 className="text-2xl font-bold">
+        Connect with your future dietician now
+      </h1>
+    </div>
     );
-};
+  }
+
+  // This will briefly show before redirection happens
+  return <div>Redirecting...</div>;
+}
