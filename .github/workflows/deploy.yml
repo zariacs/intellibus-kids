@@ -79,7 +79,9 @@ jobs:
         CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
+        echo "Before: ${AWS_REGION}"
         export AWS_REGION=us-east-1
+        echo "After: ${AWS_REGION}"
         echo "$SSH_PRIVATE_KEY" > deploy_key.pem
         chmod 600 deploy_key.pem
       
