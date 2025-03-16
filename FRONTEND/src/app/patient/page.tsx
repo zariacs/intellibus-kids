@@ -33,8 +33,7 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 // Define the form schema using Zod
 const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  condition: z.enum(["IBS", "Celiac Disease", "Gastritis"], { 
+  conditions: z.enum(["IBS", "Celiac Disease", "Gastritis"], { 
     required_error: "Please select a medical condition." 
   }),
   age: z.coerce.number().int().positive({ message: "Age must be a positive number." }),
@@ -45,6 +44,11 @@ const formSchema = z.object({
   medications: z.array(z.string()),
   symptoms: z.array(z.string()),
   dietary_preferences: z.array(z.string()).optional(),
+  diet_restriction: z.array(z.string()).optional(),
+  triggers: z.array(z.string()).optional().default([]),
+  concerns: z.array(z.string()).optional().default([]),
+  patient_id: z.string().optional(),
+  nutri_code: z.string().optional(),
 });
 
 // List options for multi-select fields
@@ -89,8 +93,7 @@ export default function PatientInformationForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: user?.fullName || "",
-      condition: undefined, // Changed to undefined since it's an enum now
+      conditions: undefined, // Changed to undefined since it's an enum now
       age: 0,
       gender: "",
       weight: 0,
@@ -99,35 +102,88 @@ export default function PatientInformationForm() {
       medications: [],
       symptoms: [],
       dietary_preferences: [],
+      diet_restriction: [],
+      triggers: [],
+      concerns: [],
+      patient_id: '2',
+      nutri_code: "NT2025-42",
     },
   });
 
   // Function to handle form submission
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     setSubmitStatus("idle");
     
     try {
-      console.log("Submitting form values:", values);
+      console.log("Form values:", values);
       
-      // External Render API endpoint
-      const response = await fetch("https://intellibus-kids-ai.onrender.com/api/v1/generate_report", {
+      // Check if user is authenticated
+      if (!user || !user.id) {
+        throw new Error("You must be signed in to submit this form");
+      }
+      
+      // Handle triggers and concerns that might be entered as comma-separated text
+      let triggersArray = values.triggers;
+      if (!Array.isArray(triggersArray) && typeof triggersArray === 'string') {
+        triggersArray = triggersArray.split(',').map(item => item.trim()).filter(item => item.length > 0);
+      }
+      
+      let concernsArray = values.concerns;
+      if (!Array.isArray(concernsArray) && typeof concernsArray === 'string') {
+        concernsArray = concernsArray.split(',').map(item => item.trim()).filter(item => item.length > 0);
+      }
+      
+      // Transform form data to match the required JSON structure
+      const transformedData = {
+        patient_id: String(user.id), // Ensure patient_id is a string
+        nutri_code: values.nutri_code || "NT2025-42",
+        conditions: [values.conditions], // Array of the selected condition
+        symptoms: values.symptoms || [],
+        diet_restriction: values.diet_restriction || [],
+        allergies: values.allergies || [],
+        medications: values.medications || [],
+        dietary_preferences: values.dietary_preferences || [],
+        triggers: triggersArray || [],
+        concerns: concernsArray || [],
+        demographics: {
+          age: values.age,
+          gender: values.gender,
+          weight: values.weight,
+          height: values.height
+        },
+        status: "pending"
+      };
+      
+      console.log("Submitting transformed data:", transformedData);
+      
+      // External API endpoint
+      const response = await fetch("http://127.0.0.1:8000/api/requests/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Add any authentication headers if needed
-          // "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(transformedData),
       });
       
       console.log("Response status:", response.status);
       
-      const responseData = await response.json().catch(() => null);
+      const responseData = await response.json().catch(() => ({}));
       console.log("Response data:", responseData);
       
       if (!response.ok) {
-        throw new Error(responseData?.error || "Failed to submit patient information");
+        let errorMsg = "Failed to submit patient information";
+        
+        // Try to extract specific error messages if available
+        if (responseData.detail && Array.isArray(responseData.detail)) {
+          errorMsg = responseData.detail.map(err => err.msg || err).join(', ');
+        } else if (responseData.detail) {
+          errorMsg = typeof responseData.detail === 'string' 
+            ? responseData.detail 
+            : JSON.stringify(responseData.detail);
+        }
+        
+        throw new Error(errorMsg);
       }
       
       setSubmitStatus("success");
@@ -162,6 +218,8 @@ export default function PatientInformationForm() {
         currentMeds.filter((_, i) => i !== index)
       );
     };
+
+    
     
     return (
       <div className="space-y-3">
@@ -191,6 +249,7 @@ export default function PatientInformationForm() {
       </div>
     );
   };
+  const id = user?.id;
   
   return (
     <div className="container mx-auto py-10">
@@ -199,6 +258,7 @@ export default function PatientInformationForm() {
           <CardTitle>Patient Information Form</CardTitle>
           <CardDescription>
             Please provide your medical information for our records.
+            <div>ID: {id}</div>
           </CardDescription>
         </CardHeader>
         
@@ -229,21 +289,7 @@ export default function PatientInformationForm() {
                 {/* Personal Information Section */}
                 <FormField
                   control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Sarah Johnson" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="condition"
+                  name="conditions"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Medical Condition</FormLabel>
@@ -454,6 +500,62 @@ export default function PatientInformationForm() {
                   )}
                 />
               </div>
+              
+              {/* Triggers Section */}
+              <FormField
+                control={form.control}
+                name="triggers"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Triggers</FormLabel>
+                    <FormDescription>
+                      Please list any triggers that worsen your condition (e.g., foods, stress).
+                    </FormDescription>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter triggers separated by commas (e.g., High stress levels, poor sleep)"
+                        onChange={(e) => {
+                          const triggersArray = e.target.value
+                            .split(',')
+                            .map(item => item.trim())
+                            .filter(item => item.length > 0);
+                          field.onChange(triggersArray);
+                        }}
+                        value={field.value?.join(', ')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Concerns Section */}
+              <FormField
+                control={form.control}
+                name="concerns"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Health Concerns</FormLabel>
+                    <FormDescription>
+                      Share any specific health concerns or goals you have.
+                    </FormDescription>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter your health concerns separated by commas"
+                        onChange={(e) => {
+                          const concernsArray = e.target.value
+                            .split(',')
+                            .map(item => item.trim())
+                            .filter(item => item.length > 0);
+                          field.onChange(concernsArray);
+                        }}
+                        value={field.value?.join(', ')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               {/* Dietary Preferences Section */}
               <div>
