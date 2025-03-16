@@ -9,7 +9,7 @@ const supabase = createClient(
 );
 
 // Rewritten to fix the build error
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest,  context: any) {
   try {
     const { userId } = getAuth(request);
     
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const reportId = context.params.id;
+    const reportId = context?.params?.id;
     
     const { data, error } = await supabase
       .from('reports')

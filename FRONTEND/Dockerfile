@@ -7,6 +7,9 @@ WORKDIR /app
 # Copy package.json and package-lock.json first (to leverage Docker caching)
 COPY package.json package-lock.json ./
 
+# Clear Next.js cache before building
+RUN rm -rf .next node_modules/.cache
+
 # Install dependencies
 RUN npm install
 
@@ -17,8 +20,6 @@ COPY . .
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 
-# Clear Next.js cache before building
-RUN rm -rf .next node_modules/.cache
 
 # Build the Next.js app
 RUN npm run build
