@@ -19,11 +19,28 @@ type NutritionRequest = {
   created_at: string;
 };
 
+// Dummy data for Jane Doe
+const DUMMY_REQUESTS: NutritionRequest[] = [
+  {
+    id: 3,
+    patient_id: "user_123abc",
+    conditions: ["Type 2 Diabetes", "Hypertension", "High Cholesterol"],
+    allergies: ["Dairy", "Shellfish", "Peanuts"],
+    diet_restrictions: ["Low-carb", "Gluten-free"],
+    dietary_preference: "Mediterranean-inspired",
+    status: "processing",
+    created_at: "2025-03-14T09:42:18Z"
+  }
+];
+
 export default function NutritionRequestsPage() {
   const { user, isLoaded } = useUser();
   const [requests, setRequests] = useState<NutritionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Flag to use dummy data (set to false when backend is ready)
+  const useDummyData = true;
 
   useEffect(() => {
     async function fetchRequests() {
@@ -31,7 +48,19 @@ export default function NutritionRequestsPage() {
 
       try {
         setLoading(true);
-        // Replace with your actual API endpoint
+        
+        if (useDummyData) {
+          // Use dummy data for testing
+          // Simulate network delay
+          setTimeout(() => {
+            setRequests(DUMMY_REQUESTS);
+            setLoading(false);
+          }, 800);
+          
+          return;
+        }
+        
+        // Real API call for when backend is ready
         const response = await fetch(`/api/nutrition-requests?userId=${user.id}&status=pending,processing,rejected`);
         
         if (!response.ok) {
@@ -43,12 +72,22 @@ export default function NutritionRequestsPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
-        setLoading(false);
+        if (!useDummyData) {
+          setLoading(false);
+        }
       }
     }
 
     fetchRequests();
-  }, [user, isLoaded]);
+  }, [user, isLoaded, useDummyData]);
+  
+  const handleViewReport = (requestId: number) => {
+    // For demo purposes, always route to report/3
+    window.location.href = '/report/3';
+    
+    // When backend is ready, uncomment this:
+    // window.location.href = `/report/${requestId}`;
+  };
 
   if (!isLoaded || loading) {
     return (
@@ -71,7 +110,7 @@ export default function NutritionRequestsPage() {
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Nutrition Requests</h1>
-        <Button onClick={() => window.location.href = '/nutrition-requests/new'}>
+        <Button onClick={() => window.location.href = '/patient'}>
           New Request
         </Button>
       </div>
@@ -79,7 +118,7 @@ export default function NutritionRequestsPage() {
       {requests.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">You don&apos;t have any pending nutrition requests.</p>
-          <Button onClick={() => window.location.href = '/nutrition-requests/new'}>
+          <Button onClick={() => window.location.href = '/patient'}>
             Create Your First Request
           </Button>
         </div>
@@ -148,6 +187,15 @@ export default function NutritionRequestsPage() {
                       <span className="text-red-600">Request declined</span>
                     )}
                   </span>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-blue-600 hover:text-blue-800"
+                    onClick={() => handleViewReport(request.id)}
+                  >
+                    View Report
+                  </Button>
                 </div>
               </CardFooter>
             </Card>

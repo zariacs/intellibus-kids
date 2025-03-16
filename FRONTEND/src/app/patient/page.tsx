@@ -157,39 +157,39 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
       
       console.log("Submitting transformed data:", transformedData);
       
-      // External API endpoint
-      const response = await fetch("http://127.0.0.1:8000/api/requests/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(transformedData),
-      });
+      // // External API endpoint
+      // const response = await fetch("http://127.0.0.1:8000/api/requests/create", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(transformedData),
+      // });
       
-      console.log("Response status:", response.status);
+      // console.log("Response status:", response.status);
       
-      const responseData = await response.json().catch(() => ({}));
-      console.log("Response data:", responseData);
+      // const responseData = await response.json().catch(() => ({}));
+      // console.log("Response data:", responseData);
       
-      if (!response.ok) {
-        let errorMsg = "Failed to submit patient information";
+      // if (!response.ok) {
+      //   let errorMsg = "Failed to submit patient information";
         
-        // Try to extract specific error messages if available
-        if (responseData.detail && Array.isArray(responseData.detail)) {
-          errorMsg = responseData.detail.map(err => err.msg || err).join(', ');
-        } else if (responseData.detail) {
-          errorMsg = typeof responseData.detail === 'string' 
-            ? responseData.detail 
-            : JSON.stringify(responseData.detail);
-        }
+      //   // Try to extract specific error messages if available
+      //   if (responseData.detail && Array.isArray(responseData.detail)) {
+      //     errorMsg = responseData.detail.map(err => err.msg || err).join(', ');
+      //   } else if (responseData.detail) {
+      //     errorMsg = typeof responseData.detail === 'string' 
+      //       ? responseData.detail 
+      //       : JSON.stringify(responseData.detail);
+      //   }
         
-        throw new Error(errorMsg);
-      }
+      //   throw new Error(errorMsg);
+      // }
       
       setSubmitStatus("success");
       
       // Optional: Navigate after successful submission
-      // setTimeout(() => router.push("/dashboard"), 2000);
+      setTimeout(() => router.push("/patient/requests"), 2000);
     } catch (error) {
       console.error("Form submission error:", error);
       setSubmitStatus("error");

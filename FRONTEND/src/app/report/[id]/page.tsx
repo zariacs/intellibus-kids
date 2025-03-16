@@ -215,7 +215,7 @@ export default function PatientReportViewer() {
   // Get the appropriate return URL based on user role
   const getReturnUrl = () => {
     if (isDoctor) return '/doctor';
-    if (isPatient) return '/dashboard';
+    if (isPatient) return '/patient';
     return '/';
   };
 
