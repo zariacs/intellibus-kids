@@ -69,7 +69,7 @@ jobs:
 
     - name: Deploy to EC2
       env:
-        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_HOST: 3.219.34.114
         EC2_USER: ec2-user
         SSH_PRIVATE_KEY: ${{ secrets.OPENSSH_PRIVATE_KEY }}
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
