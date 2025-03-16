@@ -2,8 +2,8 @@ from typing import Dict, Any, List
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
-from AI.models.medical_report import MedicalReport
-from AI.config.logging_info import setup_logger
+from models.medical_report import MedicalReport
+from config.logging_info import setup_logger
 
 # Set up logger
 logger = setup_logger("medical_report_service")
