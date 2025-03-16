@@ -75,6 +75,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_API: ${{ secrets.SUPABASE_API}}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}}
+          MODEL_NAME: ${{ secrets.MODEL_NAME }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       
 
       run: |
@@ -93,6 +95,8 @@ jobs:
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_API=${{ secrets.SUPABASE_API }}
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            MODEL_NAME=${{ secrets.MODEL_NAME }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           EOF
 
           # Ensure docker-compose.yml is copied
