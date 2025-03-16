@@ -9,11 +9,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-// Use this format instead for App Router
-export const GET = async (
-  request: NextRequest,
-  context: { params: { id: string } }
-) => {
+// Simple helper function that gets the ID from the URL
+function getIdFromUrl(url: string): string {
+  const segments = url.split('/');
+  return segments[segments.length - 1];
+}
+
+// Export a simplified GET handler that doesn't rely on context params
+export async function GET(request: NextRequest) {
   try {
     // Verify the user is authorized as a doctor
     const { userId } = getAuth(request);
@@ -21,18 +24,19 @@ export const GET = async (
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const reportId = context.params.id;
+    // Extract ID from URL instead of using params
+    const reportId = getIdFromUrl(request.url);
     
     // Fetch the report from Supabase
-    const { data, error } = await supabase
+    const { data, error: dbError } = await supabase
       .from('reports')
       .select('id, patient_id, content, created_at')
       .eq('id', reportId)
       .single();
       
-    if (error) {
-      console.error("Supabase error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (dbError) {
+      console.error("Supabase error:", dbError);
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
     
     if (!data) {
@@ -40,11 +44,11 @@ export const GET = async (
     }
     
     return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error fetching report:", error);
+  } catch (err) {
+    console.error("Error fetching report:", err);
     return NextResponse.json(
       { error: "Failed to fetch report" },
       { status: 500 }
     );
   }
-};
+}

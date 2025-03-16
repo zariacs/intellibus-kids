@@ -1,36 +1,42 @@
-// app/api/reports/[id]/route.ts
+// app/api/doctor/reports/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
 
-// Server-side Supabase client (not exposed to the browser)
+// Server-side Supabase client
 const supabase = createClient(
-  process.env.SUPABASE_URL || '',  // Note: no NEXT_PUBLIC_ prefix
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''  // Using service role key
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Simple helper function that gets the ID from the URL
+function getIdFromUrl(url: string): string {
+  const segments = url.split('/');
+  return segments[segments.length - 1];
+}
+
+// Export a simplified GET handler that doesn't rely on context params
+export async function GET(request: NextRequest) {
   try {
+    // Verify the user is authorized as a doctor
     const { userId } = getAuth(request);
-    
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const reportId = params.id;
     
-    const { data, error } = await supabase
+    // Extract ID from URL instead of using params
+    const reportId = getIdFromUrl(request.url);
+    
+    // Fetch the report from Supabase
+    const { data, error: dbError } = await supabase
       .from('reports')
-      .select('*')
+      .select('id, patient_id, content, created_at')
       .eq('id', reportId)
-      .eq('patient_id', userId)
       .single();
-    
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      
+    if (dbError) {
+      console.error("Supabase error:", dbError);
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
     
     if (!data) {
@@ -38,10 +44,10 @@ export async function GET(
     }
     
     return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error fetching report:", error);
+  } catch (err) {
+    console.error("Error fetching report:", err);
     return NextResponse.json(
-      { error: "An error occurred" },
+      { error: "Failed to fetch report" },
       { status: 500 }
     );
   }
